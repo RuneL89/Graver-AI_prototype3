@@ -1,0 +1,187 @@
+import { z } from "zod";
+
+// ---------------------------------------------------------------------------
+// Agent Skill Interface (cross-cutting contract for all pipelines)
+// ---------------------------------------------------------------------------
+
+export interface AgentSkill<Input, Output> {
+  name: string;
+  description: string;
+  inputSchema: z.ZodSchema<Input>;
+  outputSchema: z.ZodSchema<Output>;
+  execute(input: Input, context: AgentContext): Promise<Output>;
+}
+
+export interface AgentContext {
+  llmClient: LLMClient;
+  exaClient?: ExaClient;
+  wikiStore: WikiStore;
+  dbConnection: DatabaseConnection;
+  emitReasoning?: (chunk: string) => void;
+}
+
+// ---------------------------------------------------------------------------
+// Placeholder client / store interfaces (filled in later sprints)
+// ---------------------------------------------------------------------------
+
+export interface LLMClient {
+  complete(prompt: string, options?: LLMOptions): Promise<string>;
+  completeStructured<T>(
+    prompt: string,
+    schema: z.ZodSchema<T>,
+    options?: LLMOptions
+  ): Promise<T>;
+}
+
+export interface LLMOptions {
+  model?: string;
+  temperature?: number;
+  maxTokens?: number;
+}
+
+export interface ExaClient {
+  search(params: ExaSearchParams): Promise<ExaSearchResult>;
+  getContents(urls: string[]): Promise<ExaContentResult>;
+}
+
+export interface ExaSearchParams {
+  query: string;
+  type?: "neural" | "keyword";
+  useAutoprompt?: boolean;
+  numResults?: number;
+  includeDomains?: string[];
+  excludeDomains?: string[];
+  startPublishedDate?: string;
+  endPublishedDate?: string;
+  category?: string;
+  highlights?: boolean;
+}
+
+export interface ExaSearchResult {
+  results: Array<{
+    id: string;
+    title: string;
+    url: string;
+    publishedDate?: string;
+    author?: string;
+    score?: number;
+    text?: string;
+    highlights?: string[];
+  }>;
+}
+
+export interface ExaContentResult {
+  contents: Array<{
+    id: string;
+    url: string;
+    title?: string;
+    author?: string;
+    publishedDate?: string;
+    text: string;
+  }>;
+}
+
+export interface WikiStore {
+  readPage(kbName: string, pagePath: string): Promise<string | null>;
+  writePage(kbName: string, pagePath: string, content: string): Promise<void>;
+  listPages(kbName: string): Promise<string[]>;
+  deletePage(kbName: string, pagePath: string): Promise<void>;
+}
+
+export interface DatabaseConnection {
+  query(sql: string, params?: unknown[]): unknown[];
+  exec(sql: string): void;
+  prepare(sql: string): unknown;
+}
+
+// ---------------------------------------------------------------------------
+// Data types
+// ---------------------------------------------------------------------------
+
+export interface IngestionJob {
+  id: number;
+  status: "pending" | "profiling" | "planning" | "awaiting_approval" | "writing" | "complete" | "error";
+  filename: string;
+  schemaJson: string;
+  planJson?: string;
+  approvedAt?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// ---------------------------------------------------------------------------
+// Investigation state types (for LangGraph)
+// ---------------------------------------------------------------------------
+
+export interface SubClaim {
+  id: string;
+  claimText: string;
+  targetEntityType: string;
+}
+
+export interface ResearchPlan {
+  tip: string;
+  subClaims: SubClaim[];
+}
+
+export interface EvidenceBundle {
+  subClaimId: string;
+  sourceType: "sqlite" | "exa";
+  query: string;
+  results: unknown[];
+  timestamp: string;
+}
+
+export interface Synthesis {
+  subClaimId: string;
+  narrative: string;
+  confidence: "HIGH" | "MEDIUM" | "LOW";
+  contradictions: string[];
+}
+
+export interface Dossier {
+  executiveSummary: string;
+  findings: Synthesis[];
+  connections: ConnectionFinding[];
+  gaps: string[];
+  overallConfidence: "HIGH" | "MEDIUM" | "LOW";
+  sourceAttribution: SourceAttribution[];
+  suggestedNextSteps: string[];
+}
+
+export interface ConnectionFinding {
+  entityIdentifier: string;
+  sources: string[];
+  confidence: "HIGH" | "MEDIUM" | "LOW";
+  notes: string;
+}
+
+export interface SourceAttribution {
+  claim: string;
+  sourceType: "sqlite" | "exa";
+  sourceDetail: string;
+}
+
+export interface InvestigationState {
+  tip: string;
+  round: number;
+  maxRounds: number;
+  researchPlan: ResearchPlan;
+  evidence: EvidenceBundle[];
+  synthesis: Synthesis[];
+  connections: ConnectionFinding[];
+  dossier?: Dossier;
+  auditDecision?: "CONTINUE" | "STOP_COMPLETE" | "STOP_WITH_GAPS";
+  error?: string;
+}
+
+// ---------------------------------------------------------------------------
+// Wiki types
+// ---------------------------------------------------------------------------
+
+export interface WikiPage {
+  kbName: string;
+  pagePath: string;
+  content: string;
+  lastModified: string;
+}
