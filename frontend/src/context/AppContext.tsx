@@ -1,51 +1,23 @@
 import React, { createContext, useContext, useReducer, ReactNode } from "react";
 
-// ---------------------------------------------------------------------------
-// State
-// ---------------------------------------------------------------------------
-
 export interface AppState {
   activeTab: "config" | "ingest" | "investigate";
-  apiConfig: {
-    llmProvider: string;
-    llmModel: string;
-    llmApiKey: string;
-    exaApiKey: string;
-  };
 }
 
 const initialState: AppState = {
   activeTab: "config",
-  apiConfig: {
-    llmProvider: "openai",
-    llmModel: "gpt-4o",
-    llmApiKey: "",
-    exaApiKey: "",
-  },
 };
 
-// ---------------------------------------------------------------------------
-// Actions
-// ---------------------------------------------------------------------------
-
-type AppAction =
-  | { type: "SET_TAB"; payload: AppState["activeTab"] }
-  | { type: "UPDATE_API_CONFIG"; payload: Partial<AppState["apiConfig"]> };
+type AppAction = { type: "SET_TAB"; payload: AppState["activeTab"] };
 
 function appReducer(state: AppState, action: AppAction): AppState {
   switch (action.type) {
     case "SET_TAB":
       return { ...state, activeTab: action.payload };
-    case "UPDATE_API_CONFIG":
-      return { ...state, apiConfig: { ...state.apiConfig, ...action.payload } };
     default:
       return state;
   }
 }
-
-// ---------------------------------------------------------------------------
-// Context
-// ---------------------------------------------------------------------------
 
 interface AppContextValue {
   state: AppState;

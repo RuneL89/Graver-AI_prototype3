@@ -18,7 +18,7 @@ This document is the anchor for all implementation work on Graver-AI. It tracks 
 | Sprint | Focus | Instruction Location | Status |
 |---|---|---|---|
 | Sprint 1 | Project Foundation & Backend Shell | [plan/sprint-01-foundation/instruction.md](plan/sprint-01-foundation/instruction.md) | Complete |
-| Sprint 2 | LLM Client, Exa Client & Configuration | [plan/sprint-02-clients/instruction.md](plan/sprint-02-clients/instruction.md) | Not Started |
+| Sprint 2 | LLM Client, Exa Client & Configuration | [plan/sprint-02-clients/instruction.md](plan/sprint-02-clients/instruction.md) | Complete |
 | Sprint 3 | Data Ingestion Pipeline (Pipeline A) | [plan/sprint-03-ingestion/instruction.md](plan/sprint-03-ingestion/instruction.md) | Not Started |
 | Sprint 4 | Investigation Pipeline Core (Pipeline B — Part 1) | [plan/sprint-04-investigation-core/instruction.md](plan/sprint-04-investigation-core/instruction.md) | Not Started |
 | Sprint 5 | Investigation Pipeline Completion (Pipeline B — Part 2) | [plan/sprint-05-investigation-completion/instruction.md](plan/sprint-05-investigation-completion/instruction.md) | Not Started |

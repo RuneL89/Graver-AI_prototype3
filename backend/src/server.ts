@@ -3,6 +3,7 @@ import express from "express";
 import cors from "cors";
 import { getDb } from "./db/connection.js";
 import { runMigrations } from "./db/migrate.js";
+import configRoutes from "./config/routes.js";
 
 const app = express();
 const PORT = Number(process.env.PORT) || 3001;
@@ -14,6 +15,9 @@ app.use(express.json({ limit: "50mb" }));
 app.get("/api/health", (_req, res) => {
   res.json({ status: "ok" });
 });
+
+// Config routes
+app.use("/api", configRoutes);
 
 async function startServer() {
   // Ensure DB and migrations run before accepting requests

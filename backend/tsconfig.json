@@ -12,7 +12,6 @@
     "paths": {
       "@graver-ai/shared": ["../shared/dist"]
     },
-    "baseUrl": ".",
     "composite": true,
     "declaration": true,
     "declarationMap": true

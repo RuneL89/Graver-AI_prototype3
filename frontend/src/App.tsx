@@ -17,7 +17,7 @@ function App() {
         </Routes>
       </main>
       <footer className="p-4 text-center text-sm text-gray-500 border-t">
-        Graver-AI Prototype — Sprint 1 Foundation
+        Graver-AI Prototype — Sprint 2 Clients &amp; Configuration
       </footer>
     </div>
   );
