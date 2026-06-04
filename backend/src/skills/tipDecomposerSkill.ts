@@ -1,5 +1,5 @@
 import { z } from "zod";
-import type { AgentSkill, AgentContext, ResearchPlan } from "@graver-ai/shared";
+import type { AgentSkill, AgentContext } from "@graver-ai/shared";
 
 const inputSchema = z.object({
   tip: z.string().min(1),
@@ -9,6 +9,24 @@ const inputSchema = z.object({
   })),
 });
 
+// Lenient raw schema that accepts common LLM field name variations
+const rawOutputSchema = z.object({
+  subClaims: z.array(z.object({
+    id: z.string(),
+    claimText: z.string().optional(),
+    claim: z.string().optional(),
+    text: z.string().optional(),
+    researchQuestion: z.string().optional(),
+    question: z.string().optional(),
+    targetEntityType: z.string().optional(),
+    entityType: z.string().optional(),
+    suggestedKbs: z.array(z.string()).optional(),
+    suggested_kbs: z.array(z.string()).optional(),
+    kbs: z.array(z.string()).optional(),
+  })),
+});
+
+// Strict schema after normalization
 const outputSchema = z.object({
   subClaims: z.array(z.object({
     id: z.string(),
@@ -21,6 +39,17 @@ const outputSchema = z.object({
 
 type Input = z.infer<typeof inputSchema>;
 type Output = z.infer<typeof outputSchema>;
+
+function normalizeSubClaims(raw: z.infer<typeof rawOutputSchema>): Output {
+  const subClaims = raw.subClaims.map((sc, idx) => ({
+    id: sc.id || `sc-${idx + 1}`,
+    claimText: sc.claimText || sc.claim || sc.text || "(no claim text provided)",
+    researchQuestion: sc.researchQuestion || sc.question || sc.claimText || sc.claim || sc.text || "(no research question provided)",
+    targetEntityType: sc.targetEntityType || sc.entityType || "unknown",
+    suggestedKbs: sc.suggestedKbs || sc.suggested_kbs || sc.kbs || [],
+  }));
+  return { subClaims };
+}
 
 export const tipDecomposerSkill: AgentSkill<Input, Output> = {
   name: "tipDecomposer",
@@ -41,12 +70,12 @@ TIP:
 AVAILABLE KNOWLEDGE BASES (index summaries):
 ${kbSummaries || "(none available)"}
 
-For each sub-claim, provide:
-1. A unique ID (e.g., "sc-1", "sc-2")
-2. The sub-claim text (a focused, verifiable statement)
-3. A precise research question that could be answered with data
-4. The target entity type (e.g., "company", "person", "shipment", "incident", "location")
-5. A list of suggested knowledge base names that might contain relevant data (use the exact kbName values from above, or include "exa" for web research)
+For each sub-claim, you MUST return a JSON object with these exact fields:
+- "id": a unique ID string (e.g., "sc-1", "sc-2")
+- "claimText": the sub-claim text (a focused, verifiable statement)
+- "researchQuestion": a precise research question that could be answered with data
+- "targetEntityType": the target entity type (e.g., "company", "person", "shipment", "incident", "location")
+- "suggestedKbs": an array of suggested knowledge base names (use exact kbName values from above, or include "exa" for web research)
 
 Important:
 - Each sub-claim must be independently researchable
@@ -58,7 +87,8 @@ Respond with JSON containing a "subClaims" array.`;
 
     context.emitReasoning?.("Reading tip and available knowledge bases...\n");
 
-    const result = await context.llmClient.completeStructured(prompt, outputSchema);
+    const rawResult = await context.llmClient.completeStructured(prompt, rawOutputSchema);
+    const result = normalizeSubClaims(rawResult);
 
     context.emitReasoning?.(`Decomposed tip into ${result.subClaims.length} sub-claims:\n`);
     for (const sc of result.subClaims) {

@@ -24,6 +24,42 @@ const inputSchema = z.object({
   })).optional(),
 });
 
+// Lenient raw schema that accepts common LLM field name variations
+const rawSqlQuerySchema = z.object({
+  type: z.literal("sql"),
+  subClaimId: z.string().optional(),
+  sub_claim_id: z.string().optional(),
+  kbName: z.string().optional(),
+  kb_name: z.string().optional(),
+  description: z.string().optional(),
+  desc: z.string().optional(),
+  sql: z.string().optional(),
+  query: z.string().optional(),
+});
+
+const rawExaQuerySchema = z.object({
+  type: z.literal("exa"),
+  subClaimId: z.string().optional(),
+  sub_claim_id: z.string().optional(),
+  query: z.string().optional(),
+  searchQuery: z.string().optional(),
+  numResults: z.number().optional(),
+  num_results: z.number().optional(),
+  includeDomains: z.array(z.string()).optional(),
+  include_domains: z.array(z.string()).optional(),
+  excludeDomains: z.array(z.string()).optional(),
+  exclude_domains: z.array(z.string()).optional(),
+  startPublishedDate: z.string().optional(),
+  start_published_date: z.string().optional(),
+  endPublishedDate: z.string().optional(),
+  end_published_date: z.string().optional(),
+  category: z.string().optional(),
+});
+
+const rawOutputSchema = z.object({
+  queries: z.array(z.union([rawSqlQuerySchema, rawExaQuerySchema])),
+});
+
 const outputSchema = z.object({
   queries: z.array(z.union([
     z.object({
@@ -49,6 +85,40 @@ const outputSchema = z.object({
 
 type Input = z.infer<typeof inputSchema>;
 type Output = z.infer<typeof outputSchema>;
+
+function normalizeQueries(raw: z.infer<typeof rawOutputSchema>, fallbackSubClaimId: string): Output {
+  const queries: Query[] = [];
+
+  for (const q of raw.queries) {
+    if (q.type === "sql") {
+      const sql = q.sql || q.query;
+      if (!sql) continue;
+      queries.push({
+        type: "sql",
+        subClaimId: q.subClaimId || q.sub_claim_id || fallbackSubClaimId,
+        kbName: q.kbName || q.kb_name || "unknown",
+        description: q.description || q.desc || "SQL query",
+        sql,
+      });
+    } else {
+      const searchQuery = q.query || q.searchQuery;
+      if (!searchQuery) continue;
+      queries.push({
+        type: "exa",
+        subClaimId: q.subClaimId || q.sub_claim_id || fallbackSubClaimId,
+        query: searchQuery,
+        numResults: q.numResults ?? q.num_results,
+        includeDomains: q.includeDomains ?? q.include_domains,
+        excludeDomains: q.excludeDomains ?? q.exclude_domains,
+        startPublishedDate: q.startPublishedDate ?? q.start_published_date,
+        endPublishedDate: q.endPublishedDate ?? q.end_published_date,
+        category: q.category,
+      });
+    }
+  }
+
+  return { queries };
+}
 
 export const queryGeneratorSkill: AgentSkill<Input, Output> = {
   name: "queryGenerator",
@@ -77,24 +147,26 @@ ${schemaInfo}
 
 Generate queries for each assigned knowledge base:
 
-For SQLite KBs:
-- Write valid SQLite SELECT queries
-- Use JOINs, filters, aggregations as needed
-- Target the specific table in each KB (table name usually matches kb_name with "kb_" prefix)
-- Limit results to at most 100 rows per query
-- Include descriptive comments
+For SQLite KBs, return a JSON object with these exact fields:
+- "type": "sql"
+- "subClaimId": "${input.subClaim.id}"
+- "kbName": the knowledge base name
+- "description": brief description of what the query does
+- "sql": the full SQLite SELECT query string
 
-For Exa.ai (web search):
-- Write a semantic search query string (natural language, not SQL)
-- Set numResults (5-10)
-- Optionally set date range, domain filters, or category
-- The query should be specific and targeted
+For Exa.ai (web search), return a JSON object with these exact fields:
+- "type": "exa"
+- "subClaimId": "${input.subClaim.id}"
+- "query": the semantic search query string (natural language)
+- "numResults": number of results to request (5-10)
+- optionally: "includeDomains", "excludeDomains", "startPublishedDate", "endPublishedDate", "category"
 
-Respond with JSON containing a "queries" array. Each query must have a "type" field ("sql" or "exa") and the relevant fields for that type.`;
+Respond with JSON containing a "queries" array.`;
 
     context.emitReasoning?.(`Generating queries for sub-claim: ${input.subClaim.researchQuestion}\n`);
 
-    const result = await context.llmClient.completeStructured(prompt, outputSchema);
+    const rawResult = await context.llmClient.completeStructured(prompt, rawOutputSchema);
+    const result = normalizeQueries(rawResult, input.subClaim.id);
 
     for (const q of result.queries) {
       if (q.type === "sql") {
