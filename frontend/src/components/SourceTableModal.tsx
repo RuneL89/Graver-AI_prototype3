@@ -19,6 +19,35 @@ interface SourceTableModalProps {
   onClose: () => void;
 }
 
+function isJsonString(str: string): boolean {
+  const trimmed = str.trim();
+  return (
+    (trimmed.startsWith("{") && trimmed.endsWith("}")) ||
+    (trimmed.startsWith("[") && trimmed.endsWith("]"))
+  );
+}
+
+function formatCell(value: unknown): string {
+  if (value === null || value === undefined) return "NULL";
+  if (typeof value === "object") return JSON.stringify(value, null, 2);
+  const str = String(value);
+  if (isJsonString(str)) {
+    try {
+      return JSON.stringify(JSON.parse(str), null, 2);
+    } catch {
+      return str;
+    }
+  }
+  return str;
+}
+
+function isJsonCell(value: unknown): boolean {
+  if (value === null || value === undefined) return false;
+  if (typeof value === "object") return true;
+  const str = String(value);
+  return isJsonString(str);
+}
+
 export default function SourceTableModal({ tableName, onClose }: SourceTableModalProps) {
   const [columns, setColumns] = useState<Column[]>([]);
   const [rows, setRows] = useState<unknown[][]>([]);
@@ -72,7 +101,6 @@ export default function SourceTableModal({ tableName, onClose }: SourceTableModa
   const handleShowAll = () => {
     if (offset < totalCount && !loading) {
       const remaining = totalCount - offset;
-      // Fetch remaining rows in one request (capped at 1000 by backend)
       const fetchLimit = Math.min(remaining, 1000);
       setLoading(true);
       setError("");
@@ -93,12 +121,6 @@ export default function SourceTableModal({ tableName, onClose }: SourceTableModa
 
   const allLoaded = rows.length >= totalCount;
 
-  function formatCell(value: unknown): string {
-    if (value === null || value === undefined) return "NULL";
-    if (typeof value === "object") return JSON.stringify(value);
-    return String(value);
-  }
-
   return (
     <div
       className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
@@ -107,7 +129,6 @@ export default function SourceTableModal({ tableName, onClose }: SourceTableModa
       }}
     >
       <div className="w-[65vw] h-[65vh] bg-white rounded-lg shadow-xl flex flex-col overflow-hidden">
-        {/* Header */}
         <div className="flex items-center justify-between px-4 py-3 border-b bg-slate-50">
           <div>
             <h2 className="text-lg font-semibold text-slate-800">
@@ -126,7 +147,6 @@ export default function SourceTableModal({ tableName, onClose }: SourceTableModa
           </button>
         </div>
 
-        {/* Body */}
         <div className="flex-1 overflow-auto">
           {error && (
             <div className="p-4 text-red-600 text-sm">{error}</div>
@@ -154,15 +174,29 @@ export default function SourceTableModal({ tableName, onClose }: SourceTableModa
                     key={rowIdx}
                     className={rowIdx % 2 === 0 ? "bg-white" : "bg-gray-50"}
                   >
-                    {row.map((cell, cellIdx) => (
-                      <td
-                        key={cellIdx}
-                        className="px-3 py-2 border-b text-slate-700 max-w-[200px] truncate"
-                        title={formatCell(cell)}
-                      >
-                        {formatCell(cell)}
-                      </td>
-                    ))}
+                    {row.map((cell, cellIdx) => {
+                      const formatted = formatCell(cell);
+                      const json = isJsonCell(cell);
+                      return (
+                        <td
+                          key={cellIdx}
+                          className={
+                            json
+                              ? "px-3 py-2 border-b text-slate-700 min-w-[300px]"
+                              : "px-3 py-2 border-b text-slate-700 max-w-[200px] truncate"
+                          }
+                          title={json ? undefined : formatted}
+                        >
+                          {json ? (
+                            <pre className="text-xs bg-gray-50 rounded p-2 overflow-auto max-h-32 whitespace-pre-wrap break-all">
+                              {formatted}
+                            </pre>
+                          ) : (
+                            formatted
+                          )}
+                        </td>
+                      );
+                    })}
                   </tr>
                 ))}
               </tbody>
@@ -173,7 +207,6 @@ export default function SourceTableModal({ tableName, onClose }: SourceTableModa
           )}
         </div>
 
-        {/* Footer */}
         <div className="flex items-center justify-between px-4 py-3 border-t bg-slate-50">
           <div className="text-xs text-slate-500">
             {loading ? "Loading..." : allLoaded ? "All rows loaded" : ""}

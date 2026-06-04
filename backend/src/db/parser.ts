@@ -130,10 +130,16 @@ export function parseJSON(buffer: Buffer): ParsedDataset {
     };
   });
 
+  const sanitizedToRaw: Record<string, string> = {};
+  rawColumns.forEach((raw, i) => {
+    sanitizedToRaw[columns[i].name] = raw;
+  });
+
   const rows: Record<string, unknown>[] = records.map((record) => {
     const row: Record<string, unknown> = {};
     for (const col of columns) {
-      const val = record[col.name] ?? null;
+      const rawKey = sanitizedToRaw[col.name];
+      const val = record[rawKey] ?? null;
       row[col.name] = serializeValue(val);
     }
     return row;
