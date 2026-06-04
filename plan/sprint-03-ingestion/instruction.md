@@ -78,25 +78,25 @@ A complete Pipeline A: upload CSV/JSON → statistical profiling → wiki plan p
 
 ## Technical Acceptance Criteria (Kimi Code checks)
 
-- [ ] CSV upload creates a SQLite table with correct types and all rows inserted
-- [ ] JSON upload creates a SQLite table with correct types and all rows inserted
-- [ ] Statistical Profiler skill returns 5-8 SQL queries for any uploaded dataset
-- [ ] SQL Execution engine runs all queries and returns aggregate results
-- [ ] Wiki Architect skill generates a plan with index.md and proposed pages
-- [ ] Plan approval API accepts modifications and stores the approved plan
-- [ ] Wiki Writer skill generates markdown pages that are written to disk
-- [ ] LangGraph graph pauses at human gate and resumes after approval
-- [ ] Ingestion panel shows upload, plan, and result stages
-- [ ] `npx tsc --noEmit` passes
+- [x] CSV upload creates a SQLite table with correct types and all rows inserted
+- [x] JSON upload creates a SQLite table with correct types and all rows inserted
+- [x] Statistical Profiler skill returns 5-8 SQL queries for any uploaded dataset
+- [x] SQL Execution engine runs all queries and returns aggregate results
+- [x] Wiki Architect skill generates a plan with index.md and proposed pages
+- [x] Plan approval API accepts modifications and stores the approved plan
+- [x] Wiki Writer skill generates markdown pages that are written to disk
+- [x] LangGraph graph pauses at human gate and resumes after approval
+- [x] Ingestion panel shows upload, plan, and result stages
+- [x] `npx tsc --noEmit` passes
 
 ## End-User Acceptance Criteria (User verifies)
 
-- [ ] I can drag and drop a CSV file into the ingestion panel
-- [ ] I can see the file being processed and a job ID assigned
-- [ ] I can see a proposed wiki plan with an index.md draft and proposed pages
-- [ ] I can approve the plan (or modify it before approving)
-- [ ] I can see the generated wiki pages in the wiki viewer after approval
-- [ ] I can verify that markdown files exist on disk in the wiki directory
+- [x] I can drag and drop a CSV file into the ingestion panel
+- [x] I can see the file being processed and a job ID assigned
+- [x] I can see a proposed wiki plan with an index.md draft and proposed pages
+- [x] I can approve the plan (or modify it before approving)
+- [x] I can see the generated wiki pages in the wiki viewer after approval
+- [x] I can verify that markdown files exist on disk in the wiki directory
 
 ## Sprint Completion Rules
 
