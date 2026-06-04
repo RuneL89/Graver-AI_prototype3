@@ -1,6 +1,6 @@
 # Graver-AI Investigative Agent Prototype
 
-> **Status**: Sprint 6 Complete — Real-time streaming with cancel/retry, stage progress visualization, responsive layout, table previews, and polished UI panels live on `main`
+> **Status**: Active — Real-time streaming with cancel/retry, stage progress visualization, responsive layout, table previews, polished UI panels, and agent inventory live on `main`
 
 ## What is Graver-AI?
 
@@ -28,25 +28,22 @@ Graver-AI is a browser-based research acceleration tool for investigative journa
 - **Wiki Writeback** — Files investigation findings as markdown pages and updates KB index pages with cross-KB connections
 - **Dossier Viewer** — Collapsible UI with confidence color-coding and source attribution links
 
-## Sprint Plan Status
+## Capabilities
 
-| Sprint | Focus | Status |
-|---|---|---|
-| Sprint 1 | Project Foundation & Backend Shell | ✅ Complete |
-| Sprint 2 | LLM Client, Exa Client & Configuration | ✅ Complete |
-| Sprint 3 | Data Ingestion Pipeline (Pipeline A) | ✅ Complete |
-| Sprint 4 | Investigation Pipeline Core (Pipeline B — Part 1) | ✅ Complete |
-| Sprint 5 | Investigation Pipeline Completion (Pipeline B — Part 2) | ✅ Complete |
-| Sprint 6 | Real-Time Streaming & UI Panels | ✅ Complete |
-| Sprint 7 | Demo Data Preparation & End-to-End Integration | Not Started |
-| Sprint 8 | Documentation & README Finalization | Not Started |
+- Unified LLM Client — OpenAI, Anthropic, Gemini, OpenRouter, custom endpoints
+- Exa.ai Integration — Web search with configurable search type (instant / fast / deep)
+- Data Ingestion — Upload CSV/JSON → automatic SQLite table creation, statistical profiling, LLM-generated wiki documentation
+- Wiki System — Auto-generated markdown knowledge base with wikilinks and source citations
+- Investigation Pipeline — Tip decomposition, KB navigation, query generation, execution, entity resolution, evidence synthesis, gap auditing, dossier assembly, wiki writeback
+- Real-Time Streaming — SSE agent monitoring with heartbeat, stage progress visualization, query execution tracking
+- Agent Inventory — Browse all investigation agents, their prompts, and skills
 
 ## How to Implement
 
-See [SPRINT_INSTRUCTIONS.md](./SPRINT_INSTRUCTIONS.md) for the full implementation guide, sprint progression rules, and directions to sprint-specific instructions.
+See [SPRINT_INSTRUCTIONS.md](./SPRINT_INSTRUCTIONS.md) for the implementation guide and sprint-specific directions.
 
 ## Documents
 
 - [Functional Requirements Document (FRD)](./FRD_Graver_AI_Prototype.md)
 - [Implementation Plan](./IMPLEMENTATION_PLAN_Graver_AI.md)
-- [Sprint Instructions](./SPRINT_INSTRUCTIONS.md)
+- [Implementation Instructions](./SPRINT_INSTRUCTIONS.md)

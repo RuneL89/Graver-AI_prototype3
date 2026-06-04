@@ -21,7 +21,7 @@ export interface AgentContext {
 }
 
 // ---------------------------------------------------------------------------
-// Placeholder client / store interfaces (filled in later sprints)
+// Placeholder client / store interfaces
 // ---------------------------------------------------------------------------
 
 export interface LLMClient {
