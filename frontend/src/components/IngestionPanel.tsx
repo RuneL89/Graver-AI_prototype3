@@ -118,12 +118,7 @@ import { FolderOpen } from "lucide-react";
 
      try {
        console.log("[Frontend] Starting upload, file size:", file.size);
-       // For large files (>500MB), bypass Vite proxy and upload directly to backend
-       const uploadUrl = file.size > 500 * 1024 * 1024
-         ? "http://localhost:3001/api/ingest/upload"
-         : "/api/ingest/upload";
-       console.log("[Frontend] Upload URL:", uploadUrl);
-       const res = await fetch(uploadUrl, {
+       const res = await fetch("/api/ingest/upload", {
          method: "POST",
          body: formData,
        });
