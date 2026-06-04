@@ -1,6 +1,6 @@
 # Graver-AI Investigative Agent Prototype
 
-> **Status**: Active — Real-time streaming with cancel/retry, stage progress visualization, responsive layout, table previews, polished UI panels, and agent inventory live on `main`
+> **Status**: Sprint 6 Complete — Real-time streaming with cancel/retry, stage progress visualization, responsive layout, table previews, polished UI panels, and agent inventory live on `main`
 
 ## What is Graver-AI?
 
@@ -18,7 +18,7 @@ Graver-AI is a browser-based research acceleration tool for investigative journa
 - **Investigation Pipeline Core** — Submit a plain-language tip → watch agents decompose it into sub-claims, navigate KBs with relevance scoring, generate SQL/Exa queries, and execute them in real time via SSE streaming
 - **Real-Time Agent Monitoring** — SSE heartbeat (15s), stage progress pipeline diagram, query execution tracking (SQLite vs Exa), auto-scroll with pause/resume
 - **Cancel & Retry** — Cancel running investigations via DELETE endpoint; retry failed investigations from the beginning
-- **Responsive Layout** — Collapsible sidebar navigation, mobile-friendly, backend status bar with connection health
+- **Responsive Layout** — Top navigation bar, mobile-friendly, clean footer
 - **Table Preview & Statistics** — View first 10 rows after upload, browse profiling query results in expandable tables
 - **Entity Resolution** — Discovers shared identifiers across SQLite and Exa results, flags contradictions, and writes connection findings
 - **Evidence Synthesis** — Assembles evidence into narrative summaries per sub-claim with HIGH/MEDIUM/LOW confidence ratings
@@ -27,23 +27,27 @@ Graver-AI is a browser-based research acceleration tool for investigative journa
 - **Gap Discovery Suggestions** — Appends actionable suggestions for missing data sources when evidence is insufficient
 - **Wiki Writeback** — Files investigation findings as markdown pages and updates KB index pages with cross-KB connections
 - **Dossier Viewer** — Collapsible UI with confidence color-coding and source attribution links
+- **Agent Inventory** — Browse all investigation agents, their prompts, and skills
 
-## Capabilities
+## Sprint Plan Status
 
-- Unified LLM Client — OpenAI, Anthropic, Gemini, OpenRouter, custom endpoints
-- Exa.ai Integration — Web search with configurable search type (instant / fast / deep)
-- Data Ingestion — Upload CSV/JSON → automatic SQLite table creation, statistical profiling, LLM-generated wiki documentation
-- Wiki System — Auto-generated markdown knowledge base with wikilinks and source citations
-- Investigation Pipeline — Tip decomposition, KB navigation, query generation, execution, entity resolution, evidence synthesis, gap auditing, dossier assembly, wiki writeback
-- Real-Time Streaming — SSE agent monitoring with heartbeat, stage progress visualization, query execution tracking
-- Agent Inventory — Browse all investigation agents, their prompts, and skills
+| Sprint | Focus | Status |
+|---|---|---|
+| Sprint 1 | Project Foundation & Backend Shell | ✅ Complete |
+| Sprint 2 | LLM Client, Exa Client & Configuration | ✅ Complete |
+| Sprint 3 | Data Ingestion Pipeline (Pipeline A) | ✅ Complete |
+| Sprint 4 | Investigation Pipeline Core (Pipeline B — Part 1) | ✅ Complete |
+| Sprint 5 | Investigation Pipeline Completion (Pipeline B — Part 2) | ✅ Complete |
+| Sprint 6 | Real-Time Streaming & UI Panels | ✅ Complete |
+| Sprint 7 | Demo Data Preparation & End-to-End Integration | Not Started |
+| Sprint 8 | Documentation & README Finalization | Not Started |
 
 ## How to Implement
 
-See [SPRINT_INSTRUCTIONS.md](./SPRINT_INSTRUCTIONS.md) for the implementation guide and sprint-specific directions.
+See [SPRINT_INSTRUCTIONS.md](./SPRINT_INSTRUCTIONS.md) for the full implementation guide, sprint progression rules, and directions to sprint-specific instructions.
 
 ## Documents
 
 - [Functional Requirements Document (FRD)](./FRD_Graver_AI_Prototype.md)
 - [Implementation Plan](./IMPLEMENTATION_PLAN_Graver_AI.md)
-- [Implementation Instructions](./SPRINT_INSTRUCTIONS.md)
+- [Sprint Instructions](./SPRINT_INSTRUCTIONS.md)
