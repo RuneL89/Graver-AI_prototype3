@@ -101,6 +101,60 @@ import { FolderOpen } from "lucide-react";
      setStatus("awaiting_approval");
    }, []);
 
+   const CHUNK_SIZE = 5 * 1024 * 1024; // 5MB chunks
+   const CHUNK_THRESHOLD = 50 * 1024 * 1024; // use chunks for files >50MB
+
+   async function uploadChunked(file: File): Promise<any> {
+     const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
+     const uploadId = `chunk-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+     const effectiveName = targetKb || wikiName.trim();
+
+     console.log(`[ChunkedUpload] ${uploadId}: ${totalChunks} chunks, ${file.size} bytes`);
+
+     for (let i = 0; i < totalChunks; i++) {
+       const start = i * CHUNK_SIZE;
+       const end = Math.min(start + CHUNK_SIZE, file.size);
+       const chunk = file.slice(start, end);
+
+       const formData = new FormData();
+       formData.append("chunk", chunk, file.name);
+       formData.append("uploadId", uploadId);
+       formData.append("chunkIndex", String(i));
+       formData.append("totalChunks", String(totalChunks));
+       formData.append("filename", file.name);
+       formData.append("isLast", String(i === totalChunks - 1));
+       if (effectiveName) {
+         formData.append("wikiName", effectiveName);
+       }
+
+       const res = await fetch("/api/ingest/upload-chunk", {
+         method: "POST",
+         body: formData,
+       });
+
+       const text = await res.text();
+       let data;
+       try {
+         data = JSON.parse(text);
+       } catch {
+         throw new Error(`Chunk ${i + 1}/${totalChunks} failed: ${text.slice(0, 200)}`);
+       }
+
+       if (!res.ok) {
+         throw new Error(data.error || `Chunk ${i + 1}/${totalChunks} failed`);
+       }
+
+       if (data.jobId) {
+         // Final response with jobId
+         return data;
+       }
+
+       console.log(`[ChunkedUpload] Chunk ${i + 1}/${totalChunks} uploaded`);
+     }
+
+     throw new Error("Upload completed but no jobId received");
+   }
+
    const uploadFile = useCallback(async (file: File) => {
      setStatus("uploading");
      setError("");
@@ -109,36 +163,36 @@ import { FolderOpen } from "lucide-react";
      setPagesWritten(0);
      setSchema(null);
 
-     const formData = new FormData();
-     formData.append("file", file);
-     const effectiveName = targetKb || wikiName.trim();
-     if (effectiveName) {
-       formData.append("wikiName", effectiveName);
-     }
-
      try {
-       console.log("[Frontend] Starting upload, file size:", file.size);
-       const res = await fetch("/api/ingest/upload", {
-         method: "POST",
-         body: formData,
-       });
-       console.log("[Frontend] Response status:", res.status);
-       console.log("[Frontend] Content-Type:", res.headers.get("content-type"));
-       const text = await res.text();
-       console.log("[Frontend] Response first 300 chars:", text.slice(0, 300));
-       let data;
-       try {
-         data = JSON.parse(text);
-       } catch (parseErr: any) {
-         console.error("[Frontend] JSON parse failed:", parseErr.message);
-         setStatus("error");
-         setError("Server returned non-JSON: " + text.slice(0, 200));
-         return;
+       let data: any;
+
+       if (file.size > CHUNK_THRESHOLD) {
+         data = await uploadChunked(file);
+       } else {
+         const formData = new FormData();
+         formData.append("file", file);
+         const effectiveName = targetKb || wikiName.trim();
+         if (effectiveName) {
+           formData.append("wikiName", effectiveName);
+         }
+
+         const res = await fetch("/api/ingest/upload", {
+           method: "POST",
+           body: formData,
+         });
+         const text = await res.text();
+         try {
+           data = JSON.parse(text);
+         } catch {
+           throw new Error("Server returned non-JSON: " + text.slice(0, 200));
+         }
+         if (!res.ok) {
+           throw new Error(data.error || "Upload failed");
+         }
        }
-       if (!res.ok || !data.success) {
-         setStatus("error");
-         setError(data.error || "Upload failed");
-         return;
+
+       if (!data.success) {
+         throw new Error(data.error || "Upload failed");
        }
 
        setJobId(data.jobId);

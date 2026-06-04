@@ -1,7 +1,6 @@
 import { Router } from "express";
 import multer from "multer";
-import { createReadStream } from "fs";
-import { readFile, unlink } from "fs/promises";
+import { createReadStream, createWriteStream } from "fs";
 import { createInterface } from "readline";
 import { getDb } from "../db/connection.js";
 import { parseCSV, parseJSON, generateTableName } from "../db/parser.js";
@@ -14,11 +13,12 @@ import { LLMClient } from "../llm/client.js";
 import { loadConfig } from "../config/store.js";
 import { writePage, readPage, listPages, deletePage } from "../wiki/store.js";
 import type { TableSchema, WikiPlan, WikiStore, ColumnSchema } from "@graver-ai/shared";
-import fs from "fs/promises";
+import fs, { mkdir, writeFile, readdir, readFile, unlink, rmdir } from "fs/promises";
 import path from "path";
 
 const WIKI_PATH = process.env.WIKI_PATH || "./wiki";
 const UPLOAD_TMP_DIR = process.env.UPLOAD_TMP_DIR || "/tmp";
+const CHUNK_TMP_DIR = path.join(UPLOAD_TMP_DIR, "chunks");
 
 const router = Router();
 const upload = multer({
@@ -307,6 +307,168 @@ router.post("/ingest/upload", (req, res, next) => {
     res.status(500).json({ error: err.message });
   }
 });
+
+// ---------------------------------------------------------------------------
+// Chunked upload for large files
+// ---------------------------------------------------------------------------
+
+interface ChunkUpload {
+  uploadId: string;
+  filename: string;
+  totalChunks: number;
+  receivedChunks: Set<number>;
+  wikiName?: string;
+}
+
+const activeChunkUploads = new Map<string, ChunkUpload>();
+
+router.post("/ingest/upload-chunk", (req, res, next) => {
+  upload.single("chunk")(req, res, (err) => {
+    if (err) return handleMulterError(err, res);
+    next();
+  });
+}, async (req, res) => {
+  const chunkFile = req.file;
+  if (!chunkFile) {
+    return res.status(400).json({ error: "No chunk received" });
+  }
+
+  const uploadId = req.body.uploadId as string;
+  const chunkIndex = Number(req.body.chunkIndex);
+  const totalChunks = Number(req.body.totalChunks);
+  const filename = req.body.filename as string;
+  const wikiName = req.body.wikiName as string | undefined;
+  const isLast = req.body.isLast === "true";
+
+  if (!uploadId || isNaN(chunkIndex) || isNaN(totalChunks)) {
+    await unlink(chunkFile.path).catch(() => {});
+    return res.status(400).json({ error: "Missing chunk metadata" });
+  }
+
+  try {
+    // Ensure chunk dir exists
+    const uploadDir = path.join(CHUNK_TMP_DIR, uploadId);
+    await mkdir(uploadDir, { recursive: true });
+
+    // Move chunk to its slot
+    const chunkPath = path.join(uploadDir, `chunk-${chunkIndex}`);
+    await fs.rename(chunkFile.path, chunkPath);
+
+    // Track upload
+    if (!activeChunkUploads.has(uploadId)) {
+      activeChunkUploads.set(uploadId, {
+        uploadId,
+        filename,
+        totalChunks,
+        receivedChunks: new Set(),
+        wikiName,
+      });
+    }
+    const upload = activeChunkUploads.get(uploadId)!;
+    upload.receivedChunks.add(chunkIndex);
+
+    console.log(`[ChunkUpload] ${uploadId}: received chunk ${chunkIndex + 1}/${totalChunks}`);
+
+    // If last chunk or all chunks received, reassemble and process
+    const allReceived = upload.receivedChunks.size === totalChunks;
+    if (isLast || allReceived) {
+      console.log(`[ChunkUpload] ${uploadId}: all chunks received, reassembling...`);
+
+      // Reassemble file
+      const ext = filename.split(".").pop()?.toLowerCase();
+      const assembledPath = path.join(uploadDir, `assembled.${ext || "bin"}`);
+      const writeStream = createWriteStream(assembledPath);
+
+      for (let i = 0; i < totalChunks; i++) {
+        const chunkPath = path.join(uploadDir, `chunk-${i}`);
+        const chunkData = await readFile(chunkPath);
+        writeStream.write(chunkData);
+      }
+      writeStream.end();
+      await new Promise<void>((resolve, reject) => {
+        writeStream.on("finish", () => resolve());
+        writeStream.on("error", reject);
+      });
+
+      console.log(`[ChunkUpload] ${uploadId}: reassembled, processing...`);
+
+      // Process the reassembled file
+      const tableName = generateTableName(filename);
+      const effectiveWikiName = wikiName?.trim() || tableName;
+
+      let schema: TableSchema;
+      let rowCount: number;
+
+      if (ext === "csv") {
+        const buffer = await readFile(assembledPath);
+        const parsed = parseCSV(buffer);
+        parsed.schema.tableName = tableName;
+        schema = parsed.schema;
+        rowCount = parsed.rows.length;
+
+        const db = getDb();
+        const colDefs = parsed.schema.columns
+          .map((c) => `"${c.name}" ${c.type}`)
+          .join(", ");
+        db.exec(`DROP TABLE IF EXISTS "${tableName}";`);
+        db.exec(`CREATE TABLE "${tableName}" (${colDefs});`);
+
+        const colNames = parsed.schema.columns.map((c) => `"${c.name}"`).join(", ");
+        const placeholders = parsed.schema.columns.map(() => "?").join(", ");
+        const insertStmt = db.prepare(
+          `INSERT INTO "${tableName}" (${colNames}) VALUES (${placeholders})`
+        );
+        const insertMany = db.transaction((rows: Record<string, unknown>[]) => {
+          for (const row of rows) {
+            const values = parsed.schema.columns.map((c) => row[c.name] ?? null);
+            insertStmt.run(values);
+          }
+        });
+        insertMany(parsed.rows);
+      } else {
+        const result = await streamParseNDJSON(assembledPath, tableName);
+        schema = result.schema;
+        rowCount = result.rowCount;
+      }
+
+      // Clean up chunks
+      await cleanupChunks(uploadDir);
+      activeChunkUploads.delete(uploadId);
+
+      // Create job record
+      const db = getDb();
+      const schemaJson = JSON.stringify(schema);
+      const result = db
+        .prepare(
+          `INSERT INTO ingestion_jobs (status, filename, schema_json, wiki_name) VALUES (?, ?, ?, ?) RETURNING id`
+        )
+        .get("uploaded", filename, schemaJson, effectiveWikiName) as { id: number };
+
+      console.log(`[ChunkUpload] ${uploadId}: complete, rows: ${rowCount}`);
+      return res.json({ success: true, jobId: result.id, tableName, wikiName: effectiveWikiName, rowCount, schema });
+    }
+
+    // Not done yet
+    res.json({ success: true, received: upload.receivedChunks.size, total: totalChunks });
+  } catch (err: any) {
+    console.error("[ChunkUpload] Error:", err);
+    await cleanupChunks(path.join(CHUNK_TMP_DIR, uploadId)).catch(() => {});
+    activeChunkUploads.delete(uploadId);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+async function cleanupChunks(dir: string) {
+  try {
+    const files = await readdir(dir);
+    for (const f of files) {
+      await unlink(path.join(dir, f)).catch(() => {});
+    }
+    await rmdir(dir).catch(() => {});
+  } catch {
+    // ignore
+  }
+}
 
 // ---------------------------------------------------------------------------
 // Profile
