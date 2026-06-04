@@ -66,12 +66,6 @@ export default function AgentStream({ investigationId, onComplete }: Props) {
     navigator: "bg-purple-100 text-purple-800 border-purple-200",
     generator: "bg-amber-100 text-amber-800 border-amber-200",
     executor: "bg-emerald-100 text-emerald-800 border-emerald-200",
-    resolver: "bg-pink-100 text-pink-800 border-pink-200",
-    synthesizer: "bg-cyan-100 text-cyan-800 border-cyan-200",
-    auditor: "bg-orange-100 text-orange-800 border-orange-200",
-    incrementRound: "bg-gray-100 text-gray-800 border-gray-200",
-    assembler: "bg-indigo-100 text-indigo-800 border-indigo-200",
-    writeback: "bg-teal-100 text-teal-800 border-teal-200",
     investigation: "bg-slate-100 text-slate-800 border-slate-200",
   };
 
@@ -80,12 +74,6 @@ export default function AgentStream({ investigationId, onComplete }: Props) {
     navigator: "KB Navigator",
     generator: "Query Generator",
     executor: "Query Executor",
-    resolver: "Entity Resolver",
-    synthesizer: "Evidence Synthesizer",
-    auditor: "Gap Auditor",
-    incrementRound: "Round Increment",
-    assembler: "Dossier Assembler",
-    writeback: "Wiki Writeback",
     investigation: "Investigation",
   };
 

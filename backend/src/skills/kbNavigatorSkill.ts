@@ -13,7 +13,6 @@ const inputSchema = z.object({
     kbName: z.string(),
     indexContent: z.string(),
   })),
-  cumulativeContext: z.string().optional(),
 });
 
 // Lenient raw schema that accepts common LLM field name variations
@@ -66,10 +65,6 @@ export const kbNavigatorSkill: AgentSkill<Input, Output> = {
       .map((kb) => `KB: ${kb.kbName}\n${kb.indexContent.slice(0, 1500)}`)
       .join("\n\n---\n\n");
 
-    const contextSection = input.cumulativeContext
-      ? `\nCUMULATIVE CONTEXT FROM PRIOR ROUNDS:\n${input.cumulativeContext}\n`
-      : "";
-
     const prompt = `You are a knowledge base navigator. Given a research sub-claim and available knowledge base indexes, decide which knowledge bases are most relevant.
 
 SUB-CLAIM:
@@ -81,12 +76,11 @@ Suggested KBs: ${input.subClaim.suggestedKbs.join(", ") || "none specified"}
 
 AVAILABLE KNOWLEDGE BASES:
 ${kbSummaries || "(none available)"}
-${contextSection}
+
 Also consider Exa.ai (web search) as a potential source, especially for:
 - Recent events not in local databases
 - News, company websites, public records
 - Cross-referencing local findings
-- Filling gaps from prior rounds
 
 For each relevant knowledge base (including Exa.ai), return a JSON object with these exact fields:
 - "kbName": the exact name from the available KBs, or "exa" for web search
