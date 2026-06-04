@@ -21,7 +21,7 @@ This document is the anchor for all implementation work on Graver-AI. It tracks 
 | Sprint 2 | LLM Client, Exa Client & Configuration | [plan/sprint-02-clients/instruction.md](plan/sprint-02-clients/instruction.md) | Complete |
 | Sprint 3 | Data Ingestion Pipeline (Pipeline A) | [plan/sprint-03-ingestion/instruction.md](plan/sprint-03-ingestion/instruction.md) | Complete |
 | Sprint 4 | Investigation Pipeline Core (Pipeline B — Part 1) | [plan/sprint-04-investigation-core/instruction.md](plan/sprint-04-investigation-core/instruction.md) | Complete |
-| Sprint 5 | Investigation Pipeline Completion (Pipeline B — Part 2) | [plan/sprint-05-investigation-completion/instruction.md](plan/sprint-05-investigation-completion/instruction.md) | Not Started |
+| Sprint 5 | Investigation Pipeline Completion (Pipeline B — Part 2) | [plan/sprint-05-investigation-completion/instruction.md](plan/sprint-05-investigation-completion/instruction.md) | Complete |
 | Sprint 6 | Real-Time Streaming & UI Panels | [plan/sprint-06-streaming-ui/instruction.md](plan/sprint-06-streaming-ui/instruction.md) | Not Started |
 | Sprint 7 | Demo Data Preparation & End-to-End Integration | [plan/sprint-07-demo-integration/instruction.md](plan/sprint-07-demo-integration/instruction.md) | Not Started |
 | Sprint 8 | Documentation & README Finalization | [plan/sprint-08-documentation/instruction.md](plan/sprint-08-documentation/instruction.md) | Not Started |
