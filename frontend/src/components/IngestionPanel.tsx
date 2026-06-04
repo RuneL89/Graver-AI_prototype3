@@ -117,11 +117,29 @@ import { FolderOpen } from "lucide-react";
      }
 
      try {
-       const res = await fetch("/api/ingest/upload", {
+       console.log("[Frontend] Starting upload, file size:", file.size);
+       // For large files (>500MB), bypass Vite proxy and upload directly to backend
+       const uploadUrl = file.size > 500 * 1024 * 1024
+         ? "http://localhost:3001/api/ingest/upload"
+         : "/api/ingest/upload";
+       console.log("[Frontend] Upload URL:", uploadUrl);
+       const res = await fetch(uploadUrl, {
          method: "POST",
          body: formData,
        });
-       const data = await res.json();
+       console.log("[Frontend] Response status:", res.status);
+       console.log("[Frontend] Content-Type:", res.headers.get("content-type"));
+       const text = await res.text();
+       console.log("[Frontend] Response first 300 chars:", text.slice(0, 300));
+       let data;
+       try {
+         data = JSON.parse(text);
+       } catch (parseErr: any) {
+         console.error("[Frontend] JSON parse failed:", parseErr.message);
+         setStatus("error");
+         setError("Server returned non-JSON: " + text.slice(0, 200));
+         return;
+       }
        if (!res.ok || !data.success) {
          setStatus("error");
          setError(data.error || "Upload failed");

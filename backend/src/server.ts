@@ -15,6 +15,12 @@ const PORT = Number(process.env.PORT) || 3001;
 app.use(cors());
 app.use(express.json({ limit: "50mb" }));
 
+// Request logging
+app.use((req, _res, next) => {
+  console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`);
+  next();
+});
+
 // Health check
 app.get("/api/health", (_req, res) => {
   res.json({ status: "ok" });
@@ -34,6 +40,17 @@ app.use("/api", sourceRoutes);
 
 // Investigation routes
 app.use("/api", investigateRoutes);
+
+// 404 handler — always return JSON
+app.use((_req, res) => {
+  res.status(404).json({ error: "Not found" });
+});
+
+// Global error handler — always return JSON
+app.use((err: any, _req: any, res: any, _next: any) => {
+  console.error("Unhandled error:", err);
+  res.status(err.status || 500).json({ error: err.message || "Internal server error" });
+});
 
 async function startServer() {
   // Ensure DB and migrations run before accepting requests

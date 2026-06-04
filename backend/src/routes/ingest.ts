@@ -169,6 +169,7 @@ async function streamParseNDJSON(
   let batch: Record<string, unknown>[] = [];
   let totalRows = 0;
 
+  console.log("[StreamParser] Starting phase 2: streaming all lines...");
   const stream = createReadStream(filePath, { encoding: "utf-8" });
   const rl = createInterface({ input: stream, crlfDelay: Infinity });
 
@@ -199,6 +200,7 @@ async function streamParseNDJSON(
   }
 
   rl.close();
+  console.log("[StreamParser] Completed, total rows:", totalRows);
 
   const schema: TableSchema = {
     tableName,
@@ -220,12 +222,17 @@ async function streamParseNDJSON(
 // ---------------------------------------------------------------------------
 
 router.post("/ingest/upload", (req, res, next) => {
+  console.log("[Upload] Starting multer processing...");
   upload.single("file")(req, res, (err) => {
-    if (err) return handleMulterError(err, res);
+    if (err) {
+      console.error("[Upload] Multer error:", err);
+      return handleMulterError(err, res);
+    }
     next();
   });
 }, async (req, res) => {
   const file = req.file;
+  console.log("[Upload] File received:", file?.originalname, "size:", file?.size);
   if (!file) {
     return res.status(400).json({ error: "No file uploaded" });
   }
@@ -243,6 +250,7 @@ router.post("/ingest/upload", (req, res, next) => {
   const wikiName = (req.body.wikiName as string)?.trim() || tableName;
 
   try {
+    console.log("[Upload] Processing file, ext:", ext);
     let schema: TableSchema;
     let rowCount: number;
 
@@ -291,8 +299,10 @@ router.post("/ingest/upload", (req, res, next) => {
       )
       .get("uploaded", originalName, schemaJson, wikiName) as { id: number };
 
+    console.log("[Upload] Success, rows:", rowCount);
     res.json({ success: true, jobId: result.id, tableName, wikiName, rowCount, schema });
   } catch (err: any) {
+    console.error("[Upload] Error:", err);
     await unlink(tempPath).catch(() => {});
     res.status(500).json({ error: err.message });
   }
