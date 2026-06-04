@@ -1,4 +1,16 @@
 import { useState, useMemo } from "react";
+import {
+  Hammer,
+  Compass,
+  Zap,
+  Search,
+  Link,
+  Puzzle,
+  ClipboardCheck,
+  RefreshCw,
+  Folder,
+  FileText,
+} from "lucide-react";
 
 interface StreamEvent {
   type: "stage_start" | "stage_complete" | "reasoning" | "error" | "query_executed";
@@ -38,17 +50,17 @@ const stageLabels: Record<string, string> = {
   writeback: "Write to Wiki",
 };
 
-const stageIcons: Record<string, string> = {
-  decomposer: "🔨",
-  navigator: "🧭",
-  generator: "⚡",
-  executor: "🔎",
-  resolver: "🔗",
-  synthesizer: "🧩",
-  auditor: "📋",
-  incrementRound: "🔄",
-  assembler: "📁",
-  writeback: "📝",
+const stageIcons: Record<string, React.FC<{ className?: string }>> = {
+  decomposer: Hammer,
+  navigator: Compass,
+  generator: Zap,
+  executor: Search,
+  resolver: Link,
+  synthesizer: Puzzle,
+  auditor: ClipboardCheck,
+  incrementRound: RefreshCw,
+  assembler: Folder,
+  writeback: FileText,
 };
 
 export default function StageProgress({ events, maxRounds = 5 }: Props) {
@@ -150,6 +162,7 @@ export default function StageProgress({ events, maxRounds = 5 }: Props) {
           {stageOrder.map((stage, index) => {
             const status = stageStatuses[stage] || "pending";
             const isClickable = status === "completed" || status === "error";
+            const StageIcon = stageIcons[stage];
             return (
               <div key={stage} className="flex items-center">
                 <button
@@ -160,7 +173,7 @@ export default function StageProgress({ events, maxRounds = 5 }: Props) {
                   )} ${isClickable ? "cursor-pointer hover:shadow-sm" : "cursor-default"}`}
                   title={stageLabels[stage]}
                 >
-                  <span>{stageIcons[stage]}</span>
+                  {StageIcon && <StageIcon className="w-3.5 h-3.5" />}
                   <span className="hidden sm:inline">{stageLabels[stage]}</span>
                 </button>
                 {index < stageOrder.length - 1 && (

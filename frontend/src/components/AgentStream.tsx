@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import { Globe, Database } from "lucide-react";
 import StageProgress from "./StageProgress.js";
 
 interface StreamEvent {
@@ -189,7 +190,7 @@ export default function AgentStream({ investigationId, onComplete, maxRounds = 5
                 }`}
                 title={`Sub-claim: ${a.subClaimId}`}
               >
-                {a.sourceType === "exa" ? "🌐" : "🗄️"} {a.kbName}
+                {a.sourceType === "exa" ? <Globe className="w-3 h-3 inline" /> : <Database className="w-3 h-3 inline" />} {a.kbName}
               </span>
             ))}
           </div>
@@ -228,7 +229,7 @@ export default function AgentStream({ investigationId, onComplete, maxRounds = 5
                       ? "bg-sky-50 text-sky-700 border-sky-200"
                       : "bg-emerald-50 text-emerald-700 border-emerald-200"
                   }`}>
-                    {sourceType === "exa" ? "🌐 Exa" : "🗄️ SQLite"}
+                    {sourceType === "exa" ? <><Globe className="w-3 h-3 inline mr-0.5" /> Exa</> : <><Database className="w-3 h-3 inline mr-0.5" /> SQLite</>}
                   </span>
                   <span className="text-xs text-gray-600 truncate flex-1" title={query}>
                     {query.length > 60 ? query.slice(0, 60) + "..." : query}

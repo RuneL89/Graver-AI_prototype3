@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { AlertTriangle } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import type { Dossier } from "@graver-ai/shared";
@@ -117,7 +118,7 @@ export default function DossierViewer({ dossier }: Props) {
         <div className="space-y-2">
           {dossier.gaps.map((g, i) => (
             <div key={i} className="flex items-start gap-2 text-sm">
-              <span className="text-amber-500 mt-0.5">⚠</span>
+              <AlertTriangle className="w-4 h-4 text-amber-500 mt-0.5 shrink-0" />
               <span className="text-gray-700">{g}</span>
             </div>
           ))}

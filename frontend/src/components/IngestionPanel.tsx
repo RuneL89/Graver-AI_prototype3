@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect } from "react";
+import { FolderOpen } from "lucide-react";
 
  type UploadStatus = "idle" | "uploading" | "profiling" | "executing" | "planning" | "awaiting_approval" | "writing" | "complete" | "error";
  type ActionStatus = "idle" | "loading" | "success" | "error";
@@ -287,7 +288,7 @@ import { useState, useCallback, useEffect } from "react";
              onDragOver={handleDrag}
              onDrop={handleDrop}
            >
-             <div className="text-4xl mb-3">📁</div>
+             <div className="mb-3"><FolderOpen className="w-10 h-10 text-gray-400 mx-auto" /></div>
              <p className="text-gray-500 mb-4">
                Drag and drop a CSV or JSON file here, or click to browse.
              </p>

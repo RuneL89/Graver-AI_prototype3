@@ -1,11 +1,12 @@
 import { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
+import { Settings, FolderOpen, Search, BookOpen } from "lucide-react";
 
 const navItems = [
-  { path: "/config", label: "Configuration", icon: "⚙️" },
-  { path: "/ingest", label: "Ingest Data", icon: "📁" },
-  { path: "/investigate", label: "Investigate", icon: "🔍" },
-  { path: "/wiki", label: "Wiki", icon: "📖" },
+  { path: "/config", label: "Configuration", Icon: Settings },
+  { path: "/ingest", label: "Ingest Data", Icon: FolderOpen },
+  { path: "/investigate", label: "Investigate", Icon: Search },
+  { path: "/wiki", label: "Wiki", Icon: BookOpen },
 ];
 
 export default function MainLayout({ children }: { children: React.ReactNode }) {
@@ -94,7 +95,7 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
                       : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
                   }`}
                 >
-                  <span className="text-base">{item.icon}</span>
+                  <item.Icon className="w-4 h-4" />
                   {item.label}
                 </Link>
               );
