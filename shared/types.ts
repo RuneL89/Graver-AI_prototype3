@@ -40,7 +40,7 @@ export interface ExaClient {
 
 export interface ExaSearchParams {
   query: string;
-  type?: "neural" | "keyword";
+  type?: "auto" | "instant" | "fast" | "deep-lite" | "deep" | "deep-reasoning";
   useAutoprompt?: boolean;
   numResults?: number;
   includeDomains?: string[];
@@ -48,7 +48,8 @@ export interface ExaSearchParams {
   startPublishedDate?: string;
   endPublishedDate?: string;
   category?: string;
-  highlights?: boolean;
+  highlights?: boolean | { numSentences?: number; highlightsPerUrl?: number };
+  text?: boolean | { maxCharacters?: number };
 }
 
 export interface ExaSearchResult {

@@ -5,8 +5,14 @@ import { ExaClient } from "../exa/client.js";
 import { tipDecomposerSkill } from "../skills/tipDecomposerSkill.js";
 import { kbNavigatorSkill } from "../skills/kbNavigatorSkill.js";
 import { queryGeneratorSkill } from "../skills/queryGeneratorSkill.js";
+import { entityResolverSkill } from "../skills/entityResolverSkill.js";
+import { evidenceSynthesizerSkill } from "../skills/evidenceSynthesizerSkill.js";
+import { gapAuditorSkill } from "../skills/gapAuditorSkill.js";
+import { dossierAssemblerSkill } from "../skills/dossierAssemblerSkill.js";
+import { gapDiscoverySkill } from "../skills/gapDiscoverySkill.js";
+import { wikiWritebackSkill } from "../skills/wikiWritebackSkill.js";
 import { executeQueries } from "./queryExecutor.js";
-import { readPage, listPages } from "../wiki/store.js";
+import { readPage, writePage, listPages, deletePage } from "../wiki/store.js";
 import { getDb } from "../db/connection.js";
 import type {
   InvestigationState,
@@ -14,6 +20,9 @@ import type {
   KBAssignment,
   Query,
   EvidenceBundle,
+  Synthesis,
+  ConnectionFinding,
+  Dossier,
   StageEvent,
 } from "@graver-ai/shared";
 
@@ -77,8 +86,26 @@ async function gatherKbSchemas(kbNames: string[]): Promise<{ kbName: string; tab
   return schemas;
 }
 
+function buildCumulativeContext(state: InvestigationState): string {
+  if (state.round <= 1 || state.evidence.length === 0) return "";
+  const evidenceSummary = state.evidence.map((e) =>
+    `- ${e.subClaimId} (${e.sourceType}): ${e.results.length} results`
+  ).join("\n");
+  const connectionSummary = state.connections.map((c) =>
+    `- ${c.entityIdentifier} (${c.confidence})`
+  ).join("\n");
+  return `Prior evidence:\n${evidenceSummary}\n\nPrior connections:\n${connectionSummary || "(none)"}`;
+}
+
 function createGraph(services: InvestigationGraphServices) {
   const { llmClient, exaClient, emitEvent } = services;
+
+  const wikiStore = {
+    readPage,
+    writePage,
+    listPages,
+    deletePage,
+  };
 
   const decomposerNode = async (state: InvestigationState): Promise<Partial<InvestigationState>> => {
     emit(emitEvent, "stage_start", "decomposer", { round: state.round });
@@ -89,7 +116,7 @@ function createGraph(services: InvestigationGraphServices) {
       { tip: state.tip, kbIndexes },
       {
         llmClient,
-        wikiStore: null as any,
+        wikiStore,
         dbConnection: null as any,
         emitReasoning: (chunk) => emit(emitEvent, "reasoning", "decomposer", chunk),
       }
@@ -114,6 +141,7 @@ function createGraph(services: InvestigationGraphServices) {
 
     const kbIndexes = await gatherKbIndexes();
     const assignments: KBAssignment[] = [];
+    const cumulativeContext = buildCumulativeContext(state);
 
     for (const subClaim of state.researchPlan.subClaims) {
       const enrichedSubClaim = {
@@ -125,10 +153,10 @@ function createGraph(services: InvestigationGraphServices) {
       };
 
       const result = await kbNavigatorSkill.execute(
-        { subClaim: enrichedSubClaim, kbIndexes },
+        { subClaim: enrichedSubClaim, kbIndexes, cumulativeContext: cumulativeContext || undefined },
         {
           llmClient,
-          wikiStore: null as any,
+          wikiStore,
           dbConnection: null as any,
           emitReasoning: (chunk) => emit(emitEvent, "reasoning", "navigator", chunk),
         }
@@ -183,7 +211,7 @@ function createGraph(services: InvestigationGraphServices) {
         },
         {
           llmClient,
-          wikiStore: null as any,
+          wikiStore,
           dbConnection: null as any,
           emitReasoning: (chunk) => emit(emitEvent, "reasoning", "generator", chunk),
         }
@@ -247,7 +275,175 @@ function createGraph(services: InvestigationGraphServices) {
       })),
     });
 
-    return { evidence: [...state.evidence, ...evidence] };
+    return { evidence };
+  };
+
+  const resolverNode = async (state: InvestigationState): Promise<Partial<InvestigationState>> => {
+    emit(emitEvent, "stage_start", "resolver", { round: state.round });
+
+    const result = await entityResolverSkill.execute(
+      { evidence: state.evidence as EvidenceBundle[], tip: state.tip },
+      {
+        llmClient,
+        wikiStore,
+        dbConnection: null as any,
+        emitReasoning: (chunk) => emit(emitEvent, "reasoning", "resolver", chunk),
+      }
+    );
+
+    emit(emitEvent, "stage_complete", "resolver", {
+      connectionCount: result.connections.length,
+      contradictionCount: result.contradictions.length,
+    });
+
+    return { connections: result.connections };
+  };
+
+  const synthesizerNode = async (state: InvestigationState): Promise<Partial<InvestigationState>> => {
+    emit(emitEvent, "stage_start", "synthesizer", { round: state.round });
+
+    const result = await evidenceSynthesizerSkill.execute(
+      {
+        evidence: state.evidence as EvidenceBundle[],
+        connections: state.connections as ConnectionFinding[],
+        subClaims: state.researchPlan.subClaims,
+        tip: state.tip,
+      },
+      {
+        llmClient,
+        wikiStore,
+        dbConnection: null as any,
+        emitReasoning: (chunk) => emit(emitEvent, "reasoning", "synthesizer", chunk),
+      }
+    );
+
+    emit(emitEvent, "stage_complete", "synthesizer", {
+      synthesisCount: result.entries.length,
+    });
+
+    return { synthesis: result.entries };
+  };
+
+  const auditorNode = async (state: InvestigationState): Promise<Partial<InvestigationState>> => {
+    emit(emitEvent, "stage_start", "auditor", { round: state.round });
+
+    const result = await gapAuditorSkill.execute(
+      {
+        synthesis: state.synthesis as Synthesis[],
+        connections: state.connections as ConnectionFinding[],
+        evidence: state.evidence as EvidenceBundle[],
+        subClaims: state.researchPlan.subClaims,
+        round: state.round,
+        maxRounds: state.maxRounds,
+        tip: state.tip,
+      },
+      {
+        llmClient,
+        wikiStore,
+        dbConnection: null as any,
+        emitReasoning: (chunk) => emit(emitEvent, "reasoning", "auditor", chunk),
+      }
+    );
+
+    emit(emitEvent, "stage_complete", "auditor", {
+      decision: result.decision,
+      suggestedQueryCount: result.suggestedQueries.length,
+    });
+
+    return { auditDecision: result.decision };
+  };
+
+  const incrementRoundNode = async (state: InvestigationState): Promise<Partial<InvestigationState>> => {
+    emit(emitEvent, "stage_start", "incrementRound", { round: state.round });
+    const newRound = state.round + 1;
+    emit(emitEvent, "stage_complete", "incrementRound", { newRound });
+    return { round: newRound };
+  };
+
+  const assemblerNode = async (state: InvestigationState): Promise<Partial<InvestigationState>> => {
+    emit(emitEvent, "stage_start", "assembler", { round: state.round });
+
+    // Run gap discovery first if there are gaps
+    let gapSuggestions: string[] = [];
+    if (state.auditDecision === "STOP_WITH_GAPS") {
+      const gapResult = await gapDiscoverySkill.execute(
+        {
+          auditDecision: state.auditDecision,
+          auditReasoning: "Investigation stopped with gaps.",
+          synthesis: state.synthesis as Synthesis[],
+          subClaims: state.researchPlan.subClaims,
+          tip: state.tip,
+        },
+        {
+          llmClient,
+          wikiStore,
+          dbConnection: null as any,
+          emitReasoning: (chunk) => emit(emitEvent, "reasoning", "assembler", chunk),
+        }
+      );
+      gapSuggestions = gapResult.suggestions;
+    }
+
+    const result = await dossierAssemblerSkill.execute(
+      {
+        synthesis: state.synthesis as Synthesis[],
+        connections: state.connections as ConnectionFinding[],
+        evidence: state.evidence as EvidenceBundle[],
+        auditDecision: state.auditDecision,
+        auditReasoning: "See auditor output.",
+        tip: state.tip,
+        round: state.round,
+        gapSuggestions,
+      },
+      {
+        llmClient,
+        wikiStore,
+        dbConnection: null as any,
+        emitReasoning: (chunk) => emit(emitEvent, "reasoning", "assembler", chunk),
+      }
+    );
+
+    emit(emitEvent, "stage_complete", "assembler", {
+      findingsCount: result.findings.length,
+      connectionsCount: result.connections.length,
+      gapsCount: result.gaps.length,
+    });
+
+    return { dossier: result as Dossier };
+  };
+
+  const writebackNode = async (state: InvestigationState): Promise<Partial<InvestigationState>> => {
+    emit(emitEvent, "stage_start", "writeback", { round: state.round });
+
+    if (!state.dossier) {
+      emit(emitEvent, "reasoning", "writeback", "No dossier to write back.\n");
+      emit(emitEvent, "stage_complete", "writeback", { pagesWritten: 0 });
+      return {};
+    }
+
+    const investigationId = `inv-${Date.now()}`;
+
+    const result = await wikiWritebackSkill.execute(
+      {
+        dossier: state.dossier,
+        investigationId,
+        connections: state.connections as ConnectionFinding[],
+        tip: state.tip,
+      },
+      {
+        llmClient,
+        wikiStore,
+        dbConnection: null as any,
+        emitReasoning: (chunk) => emit(emitEvent, "reasoning", "writeback", chunk),
+      }
+    );
+
+    emit(emitEvent, "stage_complete", "writeback", {
+      pagesWritten: result.pagesWritten.length,
+      pages: result.pagesWritten,
+    });
+
+    return {};
   };
 
   const checkpointer = new MemorySaver();
@@ -272,11 +468,27 @@ function createGraph(services: InvestigationGraphServices) {
     .addNode("navigator", navigatorNode)
     .addNode("generator", generatorNode)
     .addNode("executor", executorNode)
+    .addNode("resolver", resolverNode)
+    .addNode("synthesizer", synthesizerNode)
+    .addNode("auditor", auditorNode)
+    .addNode("incrementRound", incrementRoundNode)
+    .addNode("assembler", assemblerNode)
+    .addNode("writeback", writebackNode)
     .addEdge("__start__", "decomposer")
     .addEdge("decomposer", "navigator")
     .addEdge("navigator", "generator")
     .addEdge("generator", "executor")
-    .addEdge("executor", END)
+    .addEdge("executor", "resolver")
+    .addEdge("resolver", "synthesizer")
+    .addEdge("synthesizer", "auditor")
+    .addConditionalEdges("auditor", (state) => {
+      if (state.round >= state.maxRounds) return "assembler";
+      if (state.auditDecision === "CONTINUE") return "incrementRound";
+      return "assembler";
+    })
+    .addEdge("incrementRound", "navigator")
+    .addEdge("assembler", "writeback")
+    .addEdge("writeback", END)
     .compile({ checkpointer });
 
   return graph;

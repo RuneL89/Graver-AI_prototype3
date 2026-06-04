@@ -90,17 +90,18 @@ router.post("/investigate", async (req, res) => {
         connections: [],
       };
 
-      const finalState = await graph.invoke(initialState, {
+      const finalState = await graph.invoke(initialState as any, {
         configurable: { thread_id: id },
       });
 
-      session.finalState = finalState as InvestigationState;
+      const typedFinalState = finalState as unknown as InvestigationState;
+      session.finalState = typedFinalState;
       session.status = "complete";
       pushEvent(session, {
         type: "stage_complete",
         stage: "investigation",
         timestamp: new Date().toISOString(),
-        payload: { status: "complete", evidenceCount: finalState.evidence?.length ?? 0 },
+        payload: { status: "complete", evidenceCount: typedFinalState.evidence?.length ?? 0 },
       });
     } catch (err: any) {
       session.status = "error";
@@ -180,6 +181,7 @@ router.get("/investigate/:id", (req, res) => {
     tip: session.tip,
     status: session.status,
     evidenceCount: session.finalState?.evidence?.length ?? 0,
+    dossier: session.finalState?.dossier ?? null,
     error: session.error,
   });
 });

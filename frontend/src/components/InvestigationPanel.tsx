@@ -1,12 +1,14 @@
 import { useState, useCallback } from "react";
 import AgentStream from "./AgentStream";
+import DossierViewer from "./DossierViewer";
+import type { Dossier } from "@graver-ai/shared";
 
 export default function InvestigationPanel() {
   const [tip, setTip] = useState("");
   const [investigationId, setInvestigationId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [results, setResults] = useState<any>(null);
+  const [results, setResults] = useState<{ status: string; evidenceCount: number; dossier: Dossier | null; error?: string } | null>(null);
 
   const runInvestigation = useCallback(async () => {
     const trimmed = tip.trim();
@@ -94,26 +96,29 @@ export default function InvestigationPanel() {
 
       {/* Results Summary */}
       {results && (
-        <div className="bg-white rounded-lg shadow p-6">
-          <h3 className="font-semibold mb-3">Investigation Results</h3>
-          <div className="space-y-2 text-sm">
-            <p>
-              <span className="font-medium">Status:</span>{" "}
-              <span className={results.status === "complete" ? "text-green-600" : "text-red-600"}>
-                {results.status}
-              </span>
-            </p>
-            <p>
-              <span className="font-medium">Evidence bundles:</span>{" "}
-              {results.evidenceCount}
-            </p>
-            {results.error && (
-              <p className="text-red-600">{results.error}</p>
-            )}
+        <div className="space-y-4">
+          <div className="bg-white rounded-lg shadow p-6">
+            <h3 className="font-semibold mb-3">Investigation Results</h3>
+            <div className="space-y-2 text-sm">
+              <p>
+                <span className="font-medium">Status:</span>{" "}
+                <span className={results.status === "complete" ? "text-green-600" : "text-red-600"}>
+                  {results.status}
+                </span>
+              </p>
+              <p>
+                <span className="font-medium">Evidence bundles:</span>{" "}
+                {results.evidenceCount}
+              </p>
+              {results.error && (
+                <p className="text-red-600">{results.error}</p>
+              )}
+            </div>
           </div>
-          <p className="mt-4 text-xs text-gray-500">
-            Full dossier synthesis will be available in Sprint 5.
-          </p>
+
+          {results.dossier && (
+            <DossierViewer dossier={results.dossier} />
+          )}
         </div>
       )}
     </div>
