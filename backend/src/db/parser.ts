@@ -103,16 +103,33 @@ export function parseCSV(buffer: Buffer): ParsedDataset {
 }
 
 export function parseJSON(buffer: Buffer): ParsedDataset {
-  const raw = JSON.parse(buffer.toString("utf-8"));
+  const text = buffer.toString("utf-8").trim();
 
   let records: Record<string, unknown>[];
-  if (Array.isArray(raw)) {
-    records = raw;
-  } else if (raw && typeof raw === "object") {
-    // Try common wrapper formats
-    records = raw.data || raw.records || raw.results || raw.rows || [raw];
-  } else {
-    throw new Error("JSON must contain an array of objects or a known wrapper");
+
+  // Try standard JSON first
+  try {
+    const raw = JSON.parse(text);
+    if (Array.isArray(raw)) {
+      records = raw;
+    } else if (raw && typeof raw === "object") {
+      records = raw.data || raw.records || raw.results || raw.rows || [raw];
+    } else {
+      throw new Error("JSON must contain an array of objects or a known wrapper");
+    }
+  } catch {
+    // Fall back to NDJSON / JSONLines
+    const lines = text.split(/\r?\n/).filter((line) => line.trim().length > 0);
+    if (lines.length === 0) {
+      throw new Error("JSON file has no records");
+    }
+    records = lines.map((line, i) => {
+      try {
+        return JSON.parse(line) as Record<string, unknown>;
+      } catch {
+        throw new Error(`Invalid JSON on line ${i + 1}`);
+      }
+    });
   }
 
   if (!Array.isArray(records) || records.length === 0) {
