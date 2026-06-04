@@ -11,7 +11,7 @@ import { gapAuditorSkill } from "../skills/gapAuditorSkill.js";
 import { dossierAssemblerSkill } from "../skills/dossierAssemblerSkill.js";
 import { gapDiscoverySkill } from "../skills/gapDiscoverySkill.js";
 import { wikiWritebackSkill } from "../skills/wikiWritebackSkill.js";
-import { executeQueries } from "./queryExecutor.js";
+import { executeQueries, type QueryExecutedPayload } from "./queryExecutor.js";
 import { readPage, writePage, listPages, deletePage } from "../wiki/store.js";
 import { getDb } from "../db/connection.js";
 import type {
@@ -24,23 +24,26 @@ import type {
   ConnectionFinding,
   Dossier,
   StageEvent,
+  QueryExecutedEvent,
 } from "@graver-ai/shared";
 
 export interface InvestigationGraphServices {
   llmClient: LLMClient;
   exaClient?: ExaClient;
-  emitEvent: (event: StageEvent | { type: "reasoning"; stage: string; chunk: string; timestamp: string }) => void;
+  emitEvent: (event: StageEvent | { type: "reasoning"; stage: string; chunk: string; timestamp: string } | QueryExecutedEvent) => void;
 }
 
 function emit(
   emitEvent: InvestigationGraphServices["emitEvent"],
-  type: StageEvent["type"] | "reasoning",
+  type: StageEvent["type"] | "reasoning" | "query_executed",
   stage: string,
-  payload?: Record<string, unknown> | string
+  payload?: Record<string, unknown> | string | QueryExecutedPayload
 ) {
   const timestamp = new Date().toISOString();
   if (type === "reasoning" && typeof payload === "string") {
     emitEvent({ type: "reasoning", stage, chunk: payload, timestamp });
+  } else if (type === "query_executed" && typeof payload === "object" && payload !== null) {
+    emitEvent({ type: "query_executed", stage, timestamp, payload: payload as Record<string, unknown> });
   } else {
     emitEvent({ type: type as StageEvent["type"], stage, timestamp, payload: payload as Record<string, unknown> });
   }
@@ -257,7 +260,11 @@ function createGraph(services: InvestigationGraphServices) {
   const executorNode = async (state: InvestigationState): Promise<Partial<InvestigationState>> => {
     emit(emitEvent, "stage_start", "executor", { round: state.round });
 
-    const { evidence, errors } = await executeQueries(state.queries, exaClient);
+    const { evidence, errors } = await executeQueries(
+      state.queries,
+      exaClient,
+      (payload) => emit(emitEvent, "query_executed", "executor", payload)
+    );
 
     if (errors.length > 0) {
       for (const err of errors) {

@@ -86,7 +86,7 @@ router.post("/ingest/upload", upload.single("file"), async (req, res) => {
       )
       .get("uploaded", originalName, schemaJson, wikiName) as { id: number };
 
-    res.json({ success: true, jobId: result.id, tableName, wikiName, rowCount: parsed.rows.length });
+    res.json({ success: true, jobId: result.id, tableName, wikiName, rowCount: parsed.rows.length, schema: parsed.schema });
   } catch (err: any) {
     res.status(500).json({ error: err.message });
   }

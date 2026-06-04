@@ -7,14 +7,24 @@ export interface QueryExecutorResult {
   errors: string[];
 }
 
+export interface QueryExecutedPayload {
+  subClaimId: string;
+  sourceType: "sqlite" | "exa";
+  query: string;
+  resultCount: number;
+  durationMs?: number;
+}
+
 export async function executeQueries(
   queries: Query[],
-  exaClient?: ExaClient
+  exaClient?: ExaClient,
+  onQueryExecuted?: (payload: QueryExecutedPayload) => void
 ): Promise<QueryExecutorResult> {
   const evidence: EvidenceBundle[] = [];
   const errors: string[] = [];
 
   const promises = queries.map(async (query) => {
+    const startTime = Date.now();
     try {
       if (query.type === "sql") {
         const db = getDb();
@@ -44,6 +54,13 @@ export async function executeQueries(
         };
 
         evidence.push(bundle);
+        onQueryExecuted?.({
+          subClaimId: query.subClaimId,
+          sourceType: "sqlite",
+          query: query.sql,
+          resultCount: rows.length,
+          durationMs: Date.now() - startTime,
+        });
       } else if (query.type === "exa") {
         if (!exaClient) {
           throw new Error("Exa client not available");
@@ -71,9 +88,23 @@ export async function executeQueries(
         };
 
         evidence.push(bundle);
+        onQueryExecuted?.({
+          subClaimId: query.subClaimId,
+          sourceType: "exa",
+          query: query.query,
+          resultCount: result.results.length,
+          durationMs: Date.now() - startTime,
+        });
       }
     } catch (err: any) {
       errors.push(`Query failed (${query.type}): ${err.message}`);
+      onQueryExecuted?.({
+        subClaimId: query.subClaimId,
+        sourceType: query.type === "sql" ? "sqlite" : "exa",
+        query: query.type === "sql" ? query.sql : query.query,
+        resultCount: 0,
+        durationMs: Date.now() - startTime,
+      });
     }
   });
 

@@ -205,7 +205,7 @@ export interface InvestigationState {
 
 // SSE event types for real-time agent monitoring
 export interface StageEvent {
-  type: "stage_start" | "stage_complete" | "error";
+  type: "stage_start" | "stage_complete" | "error" | "query_executed";
   stage: string;
   timestamp: string;
   payload?: Record<string, unknown>;
@@ -216,6 +216,19 @@ export interface ReasoningChunkEvent {
   stage: string;
   chunk: string;
   timestamp: string;
+}
+
+export interface QueryExecutedEvent {
+  type: "query_executed";
+  stage: "executor";
+  timestamp: string;
+  payload: {
+    subClaimId: string;
+    sourceType: "sqlite" | "exa";
+    query: string;
+    resultCount: number;
+    durationMs?: number;
+  };
 }
 
 // ---------------------------------------------------------------------------

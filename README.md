@@ -1,6 +1,6 @@
 # Graver-AI Investigative Agent Prototype
 
-> **Status**: Sprint 5 Complete — Full Investigation Pipeline with entity resolution, evidence synthesis, gap auditing, loop control, dossier assembly, and wiki writeback live on `main`
+> **Status**: Sprint 6 Complete — Real-time streaming with cancel/retry, stage progress visualization, responsive layout, table previews, and polished UI panels live on `main`
 
 ## What is Graver-AI?
 
@@ -16,6 +16,10 @@ Graver-AI is a browser-based research acceleration tool for investigative journa
 - **Source Table Popups** — Click any `[source: table_name]` citation to browse the underlying SQLite data with pagination
 - **Plan Approval Flow** — Ingestion plans require user approval before wiki generation; supports modifying plans or targeting existing KBs for merge
 - **Investigation Pipeline Core** — Submit a plain-language tip → watch agents decompose it into sub-claims, navigate KBs with relevance scoring, generate SQL/Exa queries, and execute them in real time via SSE streaming
+- **Real-Time Agent Monitoring** — SSE heartbeat (15s), stage progress pipeline diagram, query execution tracking (SQLite vs Exa), auto-scroll with pause/resume
+- **Cancel & Retry** — Cancel running investigations via DELETE endpoint; retry failed investigations from the beginning
+- **Responsive Layout** — Collapsible sidebar navigation, mobile-friendly, backend status bar with connection health
+- **Table Preview & Statistics** — View first 10 rows after upload, browse profiling query results in expandable tables
 - **Entity Resolution** — Discovers shared identifiers across SQLite and Exa results, flags contradictions, and writes connection findings
 - **Evidence Synthesis** — Assembles evidence into narrative summaries per sub-claim with HIGH/MEDIUM/LOW confidence ratings
 - **Gap Auditing & Loop Control** — Evaluates novelty, coverage, and opportunity; routes back for up to 5 rounds or stops with gaps
@@ -33,7 +37,7 @@ Graver-AI is a browser-based research acceleration tool for investigative journa
 | Sprint 3 | Data Ingestion Pipeline (Pipeline A) | ✅ Complete |
 | Sprint 4 | Investigation Pipeline Core (Pipeline B — Part 1) | ✅ Complete |
 | Sprint 5 | Investigation Pipeline Completion (Pipeline B — Part 2) | ✅ Complete |
-| Sprint 6 | Real-Time Streaming & UI Panels | Not Started |
+| Sprint 6 | Real-Time Streaming & UI Panels | ✅ Complete |
 | Sprint 7 | Demo Data Preparation & End-to-End Integration | Not Started |
 | Sprint 8 | Documentation & README Finalization | Not Started |
 

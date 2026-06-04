@@ -11,11 +11,12 @@ const router = Router();
 interface InvestigationSession {
   id: string;
   tip: string;
-  status: "running" | "complete" | "error";
+  status: "running" | "complete" | "error" | "cancelled";
   events: (StageEvent | { type: "reasoning"; stage: string; chunk: string; timestamp: string })[];
   resolvers: Array<() => void>;
   finalState?: InvestigationState;
   error?: string;
+  abortController: AbortController;
 }
 
 const investigations = new Map<string, InvestigationSession>();
@@ -33,6 +34,96 @@ function waitForEvent(session: InvestigationSession): Promise<void> {
   return new Promise((resolve) => {
     session.resolvers.push(resolve);
   });
+}
+
+async function runInvestigation(
+  id: string,
+  tip: string,
+  session: InvestigationSession
+): Promise<void> {
+  try {
+    const config = await loadConfig();
+    if (!config) {
+      throw new Error("No configuration found. Please configure LLM settings first.");
+    }
+
+    const llmClient = new LLMClient({
+      provider: config.llmProvider,
+      apiKey: config.llmApiKey,
+      model: config.llmModel,
+      baseUrl: config.llmBaseUrl,
+      timeoutMs: 120_000,
+    });
+
+    const exaClient = config.exaApiKey ? new ExaClient(config.exaApiKey) : undefined;
+
+    const graph = createGraph({
+      llmClient,
+      exaClient,
+      emitEvent: (event) => {
+        if (!session.abortController.signal.aborted) {
+          pushEvent(session, event);
+        }
+      },
+    });
+
+    const initialState: InvestigationState = {
+      tip: tip.trim(),
+      round: 1,
+      maxRounds: config.maxInvestigationRounds,
+      researchPlan: { tip: tip.trim(), subClaims: [] },
+      kbAssignments: [],
+      queries: [],
+      evidence: [],
+      synthesis: [],
+      connections: [],
+    };
+
+    const finalState = await graph.invoke(initialState as any, {
+      configurable: { thread_id: id },
+      recursionLimit: 50,
+    });
+
+    if (session.abortController.signal.aborted) {
+      session.status = "cancelled";
+      pushEvent(session, {
+        type: "stage_complete",
+        stage: "investigation",
+        timestamp: new Date().toISOString(),
+        payload: { status: "cancelled" },
+      });
+      return;
+    }
+
+    const typedFinalState = finalState as unknown as InvestigationState;
+    session.finalState = typedFinalState;
+    session.status = "complete";
+    pushEvent(session, {
+      type: "stage_complete",
+      stage: "investigation",
+      timestamp: new Date().toISOString(),
+      payload: { status: "complete", evidenceCount: typedFinalState.evidence?.length ?? 0 },
+    });
+  } catch (err: any) {
+    if (session.abortController.signal.aborted) {
+      session.status = "cancelled";
+      pushEvent(session, {
+        type: "stage_complete",
+        stage: "investigation",
+        timestamp: new Date().toISOString(),
+        payload: { status: "cancelled" },
+      });
+      return;
+    }
+    session.status = "error";
+    session.error = err.message;
+    pushEvent(session, {
+      type: "error",
+      stage: "investigation",
+      timestamp: new Date().toISOString(),
+      payload: { message: err.message },
+    });
+  }
 }
 
 // POST /api/investigate — start a new investigation
@@ -55,68 +146,69 @@ router.post("/investigate", async (req, res) => {
     status: "running",
     events: [],
     resolvers: [],
+    abortController: new AbortController(),
   };
 
   investigations.set(id, session);
 
   // Start investigation in background
-  (async () => {
-    try {
-      const llmClient = new LLMClient({
-        provider: config.llmProvider,
-        apiKey: config.llmApiKey,
-        model: config.llmModel,
-        baseUrl: config.llmBaseUrl,
-        timeoutMs: 120_000,
-      });
-
-      const exaClient = config.exaApiKey ? new ExaClient(config.exaApiKey) : undefined;
-
-      const graph = createGraph({
-        llmClient,
-        exaClient,
-        emitEvent: (event) => pushEvent(session, event),
-      });
-
-      const initialState: InvestigationState = {
-        tip: tip.trim(),
-        round: 1,
-        maxRounds: config.maxInvestigationRounds,
-        researchPlan: { tip: tip.trim(), subClaims: [] },
-        kbAssignments: [],
-        queries: [],
-        evidence: [],
-        synthesis: [],
-        connections: [],
-      };
-
-      const finalState = await graph.invoke(initialState as any, {
-        configurable: { thread_id: id },
-        recursionLimit: 50,
-      });
-
-      const typedFinalState = finalState as unknown as InvestigationState;
-      session.finalState = typedFinalState;
-      session.status = "complete";
-      pushEvent(session, {
-        type: "stage_complete",
-        stage: "investigation",
-        timestamp: new Date().toISOString(),
-        payload: { status: "complete", evidenceCount: typedFinalState.evidence?.length ?? 0 },
-      });
-    } catch (err: any) {
-      session.status = "error";
-      session.error = err.message;
-      pushEvent(session, {
-        type: "error",
-        stage: "investigation",
-        timestamp: new Date().toISOString(),
-        payload: { message: err.message },
-      });
-    }
-  })();
+  runInvestigation(id, tip, session);
 
   res.json({ id, tip: tip.trim(), status: "running" });
+});
+
+// DELETE /api/investigate/:id — cancel a running investigation
+router.delete("/investigate/:id", (req, res) => {
+  const { id } = req.params;
+  const session = investigations.get(id);
+  if (!session) {
+    return res.status(404).json({ error: "Investigation not found" });
+  }
+
+  if (session.status !== "running") {
+    return res.status(400).json({ error: `Investigation is already ${session.status}` });
+  }
+
+  session.abortController.abort();
+  session.status = "cancelled";
+  pushEvent(session, {
+    type: "error",
+    stage: "investigation",
+    timestamp: new Date().toISOString(),
+    payload: { message: "Investigation cancelled by user" },
+  });
+  pushEvent(session, {
+    type: "stage_complete",
+    stage: "investigation",
+    timestamp: new Date().toISOString(),
+    payload: { status: "cancelled" },
+  });
+
+  res.json({ id, status: "cancelled" });
+});
+
+// POST /api/investigate/:id/retry — retry an investigation from the beginning
+router.post("/investigate/:id/retry", async (req, res) => {
+  const { id } = req.params;
+  const oldSession = investigations.get(id);
+  if (!oldSession) {
+    return res.status(404).json({ error: "Investigation not found" });
+  }
+
+  const newId = `inv-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  const session: InvestigationSession = {
+    id: newId,
+    tip: oldSession.tip,
+    status: "running",
+    events: [],
+    resolvers: [],
+    abortController: new AbortController(),
+  };
+
+  investigations.set(newId, session);
+  runInvestigation(newId, oldSession.tip, session);
+
+  res.json({ id: newId, tip: oldSession.tip, status: "running" });
 });
 
 // GET /api/investigate/:id/stream — SSE endpoint
@@ -144,6 +236,14 @@ router.get("/investigate/:id/stream", async (req, res) => {
     res.write(":heartbeat\n\n");
   }, 15000);
 
+  const cleanup = () => {
+    clearInterval(keepAlive);
+    res.end();
+  };
+
+  req.on("close", cleanup);
+  req.on("error", cleanup);
+
   try {
     while (session.status === "running") {
       await waitForEvent(session);
@@ -164,8 +264,7 @@ router.get("/investigate/:id/stream", async (req, res) => {
   } catch (err) {
     // Client disconnected
   } finally {
-    clearInterval(keepAlive);
-    res.end();
+    cleanup();
   }
 });
 
