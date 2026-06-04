@@ -13,6 +13,9 @@ import {
   ChevronDown,
   ChevronUp,
   Bot,
+  BarChart3,
+  PenTool,
+  Layout,
 } from "lucide-react";
 
 interface Skill {
@@ -30,7 +33,7 @@ interface Agent {
   color: string;
 }
 
-const agents: Agent[] = [
+export const investigationAgents: Agent[] = [
   {
     id: "decomposer",
     label: "Tip Decomposer",
@@ -208,7 +211,82 @@ const agents: Agent[] = [
   },
 ];
 
-export default function AgentInventory() {
+export const ingestionAgents: Agent[] = [
+  {
+    id: "profiler",
+    label: "Statistical Profiler",
+    description:
+      "Analyzes the uploaded dataset schema and generates lightweight SQL aggregate queries to understand data cardinality, null rates, ranges, and distributions.",
+    prompt:
+      "You are a data profiling assistant for large-scale SQLite datasets. Given a table schema and sample rows, propose 5-8 lightweight SQL SELECT queries that efficiently measure the data landscape.",
+    skills: [
+      {
+        name: "statisticalProfiler",
+        description:
+          "Generates O(n) single-pass aggregate queries (COUNT DISTINCT, MIN/MAX/AVG, null percentages) avoiding ORDER BY, SELECT *, and high-cardinality GROUP BY.",
+      },
+    ],
+    Icon: BarChart3,
+    color: "bg-sky-100 text-sky-800 border-sky-200",
+  },
+  {
+    id: "architect",
+    label: "Wiki Architect",
+    description:
+      "Designs a wiki structure plan from profiling results: drafting index.md, proposing 3-6 entity/segment pages, and suggesting cross-KB linkage hints.",
+    prompt:
+      "You are a wiki architect. Given database table schema and statistical profiling results, design a markdown wiki structure plan.",
+    skills: [
+      {
+        name: "wikiArchitect",
+        description:
+          "Drafts index.md content, proposes entity/segment pages with rationale, and suggests cross-knowledge-base linkage hints.",
+      },
+    ],
+    Icon: Layout,
+    color: "bg-violet-100 text-violet-800 border-violet-200",
+  },
+  {
+    id: "writer",
+    label: "Wiki Writer",
+    description:
+      "Generates polished markdown wiki pages from an approved plan and statistical results, including wikilinks, citation anchors, and merged index content.",
+    prompt:
+      "You are a wiki writer. Generate polished markdown pages for a knowledge base based on the approved plan and statistical results.",
+    skills: [
+      {
+        name: "wikiWriter",
+        description:
+          "Writes index.md and entity pages with proper headers, wikilinks, citation anchors, and factual grounding in profiling results.",
+      },
+    ],
+    Icon: FileText,
+    color: "bg-emerald-100 text-emerald-800 border-emerald-200",
+  },
+  {
+    id: "modifier",
+    label: "Plan Modifier",
+    description:
+      "Revises an existing wiki plan based on user feedback while preserving statistical grounding from the original profiling results.",
+    prompt:
+      "You are a wiki architect. A user has reviewed your initial wiki plan and requested changes. Revise the plan accordingly.",
+    skills: [
+      {
+        name: "wikiPlanModifier",
+        description:
+          "Adds, removes, or restructures pages; changes index.md; modifies linkage hints; merges KBs — all while preserving statistical grounding.",
+      },
+    ],
+    Icon: PenTool,
+    color: "bg-amber-100 text-amber-800 border-amber-200",
+  },
+];
+
+interface AgentInventoryProps {
+  agents?: Agent[];
+}
+
+export default function AgentInventory({ agents = investigationAgents }: AgentInventoryProps) {
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
   function toggle(id: string) {
