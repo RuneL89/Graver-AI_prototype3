@@ -88,6 +88,9 @@ import { FolderOpen } from "lucide-react";
 
          if (job.status === "awaiting_approval") {
            clearInterval(interval);
+           if (job.profiling_results_json) {
+             setProfilingResults(JSON.parse(job.profiling_results_json));
+           }
            const planRes = await fetch(`/api/ingest/plan/${jobId}`);
            const planData = await planRes.json();
            if (planRes.ok && planData.plan) {

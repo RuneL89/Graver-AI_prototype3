@@ -521,6 +521,11 @@ async function runPipelineAsync(jobId: number) {
     setStatus("executing", "Running statistical queries on the dataset...");
     const profilingResults = executeProfilingQueries(db, schema.tableName, profileResult.queries);
 
+    // Store profiling results for modify/approve
+    db.prepare(
+      "UPDATE ingestion_jobs SET profiling_results_json = ? WHERE id = ?"
+    ).run(JSON.stringify(profilingResults), jobId);
+
     // Step 3: Architect plan
     setStatus("planning", "Designing wiki structure from profiling results...");
     const wikiStore: WikiStore = { readPage, writePage, listPages, deletePage };
@@ -871,7 +876,7 @@ router.get("/ingest/job/:jobId", async (req, res) => {
   const db = getDb();
 
   const job = db
-    .prepare("SELECT id, status, filename, schema_json, plan_json, approved_at, created_at FROM ingestion_jobs WHERE id = ?")
+    .prepare("SELECT id, status, filename, schema_json, plan_json, approved_at, created_at, progress_message, profiling_results_json FROM ingestion_jobs WHERE id = ?")
     .get(jobId) as any;
 
   if (!job) {
