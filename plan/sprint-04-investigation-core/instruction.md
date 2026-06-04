@@ -77,26 +77,26 @@ The first half of Pipeline B is functional: tip submission → decomposition →
 
 ## Technical Acceptance Criteria (Kimi Code checks)
 
-- [ ] Tip Decomposer skill breaks any tip into 3-5 sub-claims with research questions
-- [ ] KB Navigator skill assigns relevant KBs with scores and justifications
-- [ ] Query Generator skill produces valid SQL for SQLite KBs
-- [ ] Query Generator skill produces valid Exa parameters for web research
-- [ ] Query Executor runs all queries in parallel and returns structured results
-- [ ] Investigation graph runs Decomposer → Navigator → Generator → Executor without errors
-- [ ] SSE stream emits stage events and reasoning chunks
-- [ ] Agent Stream component renders real-time events correctly
-- [ ] Investigation panel accepts tips and displays results
-- [ ] `npx tsc --noEmit` passes
+- [x] Tip Decomposer skill breaks any tip into 3-5 sub-claims with research questions
+- [x] KB Navigator skill assigns relevant KBs with scores and justifications
+- [x] Query Generator skill produces valid SQL for SQLite KBs
+- [x] Query Generator skill produces valid Exa parameters for web research
+- [x] Query Executor runs all queries in parallel and returns structured results
+- [x] Investigation graph runs Decomposer → Navigator → Generator → Executor without errors
+- [x] SSE stream emits stage events and reasoning chunks
+- [x] Agent Stream component renders real-time events correctly
+- [x] Investigation panel accepts tips and displays results
+- [x] `npx tsc --noEmit` passes
 
 ## End-User Acceptance Criteria (User verifies)
 
-- [ ] I can enter a tip in the investigation panel
-- [ ] I can click "Run Investigation" and see the agent stream start
-- [ ] I can see the decomposer breaking the tip into sub-claims in real time
-- [ ] I can see the KB navigator selecting knowledge bases with relevance scores
-- [ ] I can see the query generator writing SQL and Exa parameters
-- [ ] I can see the query executor running queries and returning results
-- [ ] I can see all reasoning text as it is produced
+- [x] I can enter a tip in the investigation panel
+- [x] I can click "Run Investigation" and see the agent stream start
+- [x] I can see the decomposer breaking the tip into sub-claims in real time
+- [x] I can see the KB navigator selecting knowledge bases with relevance scores
+- [x] I can see the query generator writing SQL and Exa parameters
+- [x] I can see the query executor running queries and returning results
+- [x] I can see all reasoning text as it is produced
 
 ## Sprint Completion Rules
 

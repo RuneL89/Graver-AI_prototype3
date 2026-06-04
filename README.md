@@ -1,6 +1,6 @@
 # Graver-AI Investigative Agent Prototype
 
-> **Status**: Sprint 3 Complete — Data Ingestion Pipeline live on `main`
+> **Status**: Sprint 4 Complete — Investigation Pipeline Core live on `main`
 
 ## What is Graver-AI?
 
@@ -15,6 +15,7 @@ Graver-AI is a browser-based research acceleration tool for investigative journa
 - **Wiki Viewer/CRUD** — Sidebar navigation, rendered markdown (GFM), rename/delete pages & KBs, create new pages, custom display names
 - **Source Table Popups** — Click any `[source: table_name]` citation to browse the underlying SQLite data with pagination
 - **Plan Approval Flow** — Ingestion plans require user approval before wiki generation; supports modifying plans or targeting existing KBs for merge
+- **Investigation Pipeline Core** — Submit a plain-language tip → watch agents decompose it into sub-claims, navigate KBs with relevance scoring, generate SQL/Exa queries, and execute them in real time via SSE streaming
 
 ## Sprint Plan Status
 
@@ -23,7 +24,7 @@ Graver-AI is a browser-based research acceleration tool for investigative journa
 | Sprint 1 | Project Foundation & Backend Shell | ✅ Complete |
 | Sprint 2 | LLM Client, Exa Client & Configuration | ✅ Complete |
 | Sprint 3 | Data Ingestion Pipeline (Pipeline A) | ✅ Complete |
-| Sprint 4 | Investigation Pipeline Core (Pipeline B — Part 1) | Not Started |
+| Sprint 4 | Investigation Pipeline Core (Pipeline B — Part 1) | ✅ Complete |
 | Sprint 5 | Investigation Pipeline Completion (Pipeline B — Part 2) | Not Started |
 | Sprint 6 | Real-Time Streaming & UI Panels | Not Started |
 | Sprint 7 | Demo Data Preparation & End-to-End Integration | Not Started |
