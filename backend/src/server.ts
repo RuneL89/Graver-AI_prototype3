@@ -4,6 +4,9 @@ import cors from "cors";
 import { getDb } from "./db/connection.js";
 import { runMigrations } from "./db/migrate.js";
 import configRoutes from "./config/routes.js";
+import ingestRoutes from "./routes/ingest.js";
+import wikiRoutes from "./routes/wiki.js";
+import sourceRoutes from "./routes/source.js";
 
 const app = express();
 const PORT = Number(process.env.PORT) || 3001;
@@ -18,6 +21,15 @@ app.get("/api/health", (_req, res) => {
 
 // Config routes
 app.use("/api", configRoutes);
+
+// Ingestion routes
+app.use("/api", ingestRoutes);
+
+// Wiki routes
+app.use("/api", wikiRoutes);
+
+// Source / SQLite data routes
+app.use("/api", sourceRoutes);
 
 async function startServer() {
   // Ensure DB and migrations run before accepting requests

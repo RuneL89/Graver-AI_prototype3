@@ -4,6 +4,7 @@ const tabs = [
   { path: "/config", label: "Configuration" },
   { path: "/ingest", label: "Ingest Data" },
   { path: "/investigate", label: "Investigate" },
+  { path: "/wiki", label: "Wiki" },
 ];
 
 export default function NavBar() {

@@ -13,12 +13,21 @@ const MIGRATIONS = [
     updated_at TEXT NOT NULL DEFAULT (datetime('now'))
   );
   `,
+  `ALTER TABLE ingestion_jobs ADD COLUMN wiki_name TEXT;`,
 ];
 
 export function runMigrations(): void {
   const db = getDb();
   for (const sql of MIGRATIONS) {
-    db.exec(sql);
+    try {
+      db.exec(sql);
+    } catch (err: any) {
+      // Ignore "duplicate column name" errors from ADD COLUMN migrations
+      if (err.message?.includes("duplicate column name")) {
+        continue;
+      }
+      throw err;
+    }
   }
   console.log("Migrations applied successfully.");
 }

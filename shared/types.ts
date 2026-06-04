@@ -25,18 +25,12 @@ export interface AgentContext {
 // ---------------------------------------------------------------------------
 
 export interface LLMClient {
-  complete(prompt: string, options?: LLMOptions): Promise<string>;
+  complete(prompt: string, systemPrompt?: string): Promise<string>;
   completeStructured<T>(
     prompt: string,
     schema: z.ZodSchema<T>,
-    options?: LLMOptions
+    systemPrompt?: string
   ): Promise<T>;
-}
-
-export interface LLMOptions {
-  model?: string;
-  temperature?: number;
-  maxTokens?: number;
 }
 
 export interface ExaClient {
@@ -184,4 +178,41 @@ export interface WikiPage {
   pagePath: string;
   content: string;
   lastModified: string;
+}
+
+export interface ColumnSchema {
+  name: string;
+  type: "TEXT" | "INTEGER" | "REAL" | "DATE";
+  nullable: boolean;
+  sampleValues: unknown[];
+}
+
+export interface TableSchema {
+  tableName: string;
+  columns: ColumnSchema[];
+  foreignKeys: string[];
+  rowCount: number;
+  sampleRows: Record<string, unknown>[];
+}
+
+export interface ProfilingQuery {
+  description: string;
+  sql: string;
+}
+
+export interface ProfilingResult {
+  query: ProfilingQuery;
+  result: unknown[];
+}
+
+export interface ProposedWikiPage {
+  path: string;
+  title: string;
+  rationale: string;
+}
+
+export interface WikiPlan {
+  indexContent: string;
+  proposedPages: ProposedWikiPage[];
+  linkageHints: string[];
 }
