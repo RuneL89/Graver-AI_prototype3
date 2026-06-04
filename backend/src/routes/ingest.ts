@@ -471,6 +471,107 @@ async function cleanupChunks(dir: string) {
 }
 
 // ---------------------------------------------------------------------------
+// Async pipeline runner (background)
+// ---------------------------------------------------------------------------
+
+async function runPipelineAsync(jobId: number) {
+  const db = getDb();
+
+  function setStatus(status: string, message: string) {
+    db.prepare(
+      "UPDATE ingestion_jobs SET status = ?, progress_message = ? WHERE id = ?"
+    ).run(status, message, jobId);
+  }
+
+  try {
+    const job = db
+      .prepare("SELECT * FROM ingestion_jobs WHERE id = ?")
+      .get(jobId) as any;
+
+    if (!job) {
+      console.error(`[Pipeline] Job ${jobId} not found`);
+      return;
+    }
+
+    const schema: TableSchema = JSON.parse(job.schema_json);
+    const config = await loadConfig();
+    const llmClient = config
+      ? new LLMClient({
+          provider: config.llmProvider,
+          apiKey: config.llmApiKey,
+          model: config.llmModel,
+          baseUrl: config.llmBaseUrl,
+          timeoutMs: 120_000,
+        })
+      : getLLMClient();
+
+    if (!llmClient) {
+      setStatus("error", "LLM not configured");
+      return;
+    }
+
+    // Step 1: Profiling
+    setStatus("profiling", "Analyzing data schema and generating profiling queries...");
+    const profileResult = await statisticalProfilerSkill.execute(
+      { schema },
+      { llmClient, wikiStore: null as any, dbConnection: null as any }
+    );
+
+    // Step 2: Execute queries
+    setStatus("executing", "Running statistical queries on the dataset...");
+    const profilingResults = executeProfilingQueries(db, schema.tableName, profileResult.queries);
+
+    // Step 3: Architect plan
+    setStatus("planning", "Designing wiki structure from profiling results...");
+    const wikiStore: WikiStore = { readPage, writePage, listPages, deletePage };
+    const plan = await wikiArchitectSkill.execute(
+      { schema, profilingResults, targetKb: job.wiki_name },
+      { llmClient, wikiStore, dbConnection: null as any }
+    );
+
+    db.prepare(
+      "UPDATE ingestion_jobs SET status = ?, plan_json = ?, progress_message = ? WHERE id = ?"
+    ).run("awaiting_approval", JSON.stringify(plan), "Plan ready for review", jobId);
+
+    console.log(`[Pipeline] Job ${jobId} complete, awaiting approval`);
+  } catch (err: any) {
+    console.error(`[Pipeline] Job ${jobId} failed:`, err);
+    setStatus("error", err.message || "Pipeline failed");
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Run pipeline (async kickoff)
+// ---------------------------------------------------------------------------
+
+router.post("/ingest/run-pipeline/:jobId", async (req, res) => {
+  const jobId = Number(req.params.jobId);
+  const db = getDb();
+
+  const job = db
+    .prepare("SELECT * FROM ingestion_jobs WHERE id = ?")
+    .get(jobId) as any;
+
+  if (!job) {
+    return res.status(404).json({ error: "Job not found" });
+  }
+
+  // Prevent double-start
+  if (!["uploaded", "error"].includes(job.status)) {
+    return res.status(409).json({ error: `Pipeline already ${job.status}` });
+  }
+
+  db.prepare(
+    "UPDATE ingestion_jobs SET status = ?, progress_message = ? WHERE id = ?"
+  ).run("profiling", "Analyzing data schema and generating profiling queries...", jobId);
+
+  // Fire and forget — client will poll for status
+  runPipelineAsync(jobId);
+
+  res.json({ success: true, status: "profiling" });
+});
+
+// ---------------------------------------------------------------------------
 // Profile
 // ---------------------------------------------------------------------------
 

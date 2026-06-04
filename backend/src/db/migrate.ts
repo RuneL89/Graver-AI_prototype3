@@ -14,6 +14,7 @@ const MIGRATIONS = [
   );
   `,
   `ALTER TABLE ingestion_jobs ADD COLUMN wiki_name TEXT;`,
+  `ALTER TABLE ingestion_jobs ADD COLUMN progress_message TEXT;`,
 ];
 
 export function runMigrations(): void {

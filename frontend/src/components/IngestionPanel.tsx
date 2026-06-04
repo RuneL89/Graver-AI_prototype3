@@ -38,7 +38,8 @@ import { FolderOpen } from "lucide-react";
    const [modifyStatus, setModifyStatus] = useState<ActionStatus>("idle");
    const [modifyMessage, setModifyMessage] = useState("");
    const [schema, setSchema] = useState<TableSchema | null>(null);
-   const [expandedResultIndex, setExpandedResultIndex] = useState<number | null>(null);
+    const [expandedResultIndex, setExpandedResultIndex] = useState<number | null>(null);
+   const [progressMessage, setProgressMessage] = useState("");
 
    useEffect(() => {
      fetch("/api/wiki")
@@ -57,49 +58,54 @@ import { FolderOpen } from "lucide-react";
      }
    }, []);
 
-   const runPipeline = useCallback(async (id: number) => {
-     // Step 1: Profile
+   const startPipeline = useCallback(async (id: number) => {
      setStatus("profiling");
-     const profileRes = await fetch(`/api/ingest/profile/${id}`, { method: "POST" });
-     const profileData = await profileRes.json();
-     if (!profileRes.ok || !profileData.success) {
+     setProgressMessage("Starting pipeline...");
+     const res = await fetch(`/api/ingest/run-pipeline/${id}`, { method: "POST" });
+     const data = await res.json();
+     if (!res.ok || !data.success) {
        setStatus("error");
-       setError(profileData.error || "Profiling failed");
+       setError(data.error || "Failed to start pipeline");
        return;
      }
-
-     // Step 2: Execute queries
-     setStatus("executing");
-     const execRes = await fetch(`/api/ingest/execute/${id}`, {
-       method: "POST",
-       headers: { "Content-Type": "application/json" },
-       body: JSON.stringify({ queries: profileData.queries }),
-     });
-     const execData = await execRes.json();
-     if (!execRes.ok || !execData.success) {
-       setStatus("error");
-       setError(execData.error || "Query execution failed");
-       return;
-     }
-     setProfilingResults(execData.results);
-
-     // Step 3: Architect
-     setStatus("planning");
-     const archRes = await fetch(`/api/ingest/architect/${id}`, {
-       method: "POST",
-       headers: { "Content-Type": "application/json" },
-       body: JSON.stringify({ profilingResults: execData.results }),
-     });
-     const archData = await archRes.json();
-     if (!archRes.ok || !archData.success) {
-       setStatus("error");
-       setError(archData.error || "Architect failed");
-       return;
-     }
-
-     setEditedPlan(JSON.parse(JSON.stringify(archData.plan)));
-     setStatus("awaiting_approval");
+     // Polling continues via useEffect
    }, []);
+
+   // Poll for pipeline status
+   useEffect(() => {
+     if (!jobId || !["profiling", "executing", "planning"].includes(status)) return;
+
+     const interval = setInterval(async () => {
+       try {
+         const res = await fetch(`/api/ingest/job/${jobId}`);
+         const job = await res.json();
+         if (!res.ok) return;
+
+         setStatus(job.status);
+         if (job.progress_message) {
+           setProgressMessage(job.progress_message);
+         }
+
+         if (job.status === "awaiting_approval") {
+           clearInterval(interval);
+           const planRes = await fetch(`/api/ingest/plan/${jobId}`);
+           const planData = await planRes.json();
+           if (planRes.ok && planData.plan) {
+             setEditedPlan(JSON.parse(JSON.stringify(planData.plan)));
+           }
+         }
+
+         if (job.status === "error") {
+           clearInterval(interval);
+           setError(job.progress_message || "Pipeline failed");
+         }
+       } catch {
+         // Ignore poll errors, keep trying
+       }
+     }, 2000);
+
+     return () => clearInterval(interval);
+   }, [jobId, status]);
 
    const CHUNK_SIZE = 5 * 1024 * 1024; // 5MB chunks
    const CHUNK_THRESHOLD = 50 * 1024 * 1024; // use chunks for files >50MB
@@ -197,12 +203,12 @@ import { FolderOpen } from "lucide-react";
 
        setJobId(data.jobId);
        setSchema(data.schema);
-       await runPipeline(data.jobId);
+       await startPipeline(data.jobId);
      } catch (err: any) {
        setStatus("error");
        setError(err.message || "Network error");
      }
-   }, [targetKb, wikiName, runPipeline]);
+   }, [targetKb, wikiName, startPipeline]);
 
    const handleDrop = useCallback(async (e: React.DragEvent) => {
      e.preventDefault();
@@ -383,6 +389,9 @@ import { FolderOpen } from "lucide-react";
              <div className="w-4 h-4 border-2 border-slate-900 border-t-transparent rounded-full animate-spin" />
              <span className="font-medium capitalize">{status.replace("_", " ")}...</span>
            </div>
+           {progressMessage && (
+             <p className="text-sm text-gray-500 mt-2">{progressMessage}</p>
+           )}
            {error && <p className="text-red-600 mt-2">{error}</p>}
          </div>
        )}
