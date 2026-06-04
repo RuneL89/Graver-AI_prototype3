@@ -156,17 +156,64 @@ export interface SourceAttribution {
   sourceDetail: string;
 }
 
+export interface KBAssignment {
+  subClaimId: string;
+  kbName: string;
+  sourceType: "sqlite" | "exa";
+  relevanceScore: number;
+  justification: string;
+}
+
+export interface SqlQuery {
+  type: "sql";
+  subClaimId: string;
+  kbName: string;
+  description: string;
+  sql: string;
+}
+
+export interface ExaQuery {
+  type: "exa";
+  subClaimId: string;
+  query: string;
+  numResults?: number;
+  includeDomains?: string[];
+  excludeDomains?: string[];
+  startPublishedDate?: string;
+  endPublishedDate?: string;
+  category?: string;
+}
+
+export type Query = SqlQuery | ExaQuery;
+
 export interface InvestigationState {
   tip: string;
   round: number;
   maxRounds: number;
   researchPlan: ResearchPlan;
+  kbAssignments: KBAssignment[];
+  queries: Query[];
   evidence: EvidenceBundle[];
   synthesis: Synthesis[];
   connections: ConnectionFinding[];
   dossier?: Dossier;
   auditDecision?: "CONTINUE" | "STOP_COMPLETE" | "STOP_WITH_GAPS";
   error?: string;
+}
+
+// SSE event types for real-time agent monitoring
+export interface StageEvent {
+  type: "stage_start" | "stage_complete" | "error";
+  stage: string;
+  timestamp: string;
+  payload?: Record<string, unknown>;
+}
+
+export interface ReasoningChunkEvent {
+  type: "reasoning";
+  stage: string;
+  chunk: string;
+  timestamp: string;
 }
 
 // ---------------------------------------------------------------------------

@@ -7,6 +7,7 @@ import configRoutes from "./config/routes.js";
 import ingestRoutes from "./routes/ingest.js";
 import wikiRoutes from "./routes/wiki.js";
 import sourceRoutes from "./routes/source.js";
+import investigateRoutes from "./routes/investigate.js";
 
 const app = express();
 const PORT = Number(process.env.PORT) || 3001;
@@ -30,6 +31,9 @@ app.use("/api", wikiRoutes);
 
 // Source / SQLite data routes
 app.use("/api", sourceRoutes);
+
+// Investigation routes
+app.use("/api", investigateRoutes);
 
 async function startServer() {
   // Ensure DB and migrations run before accepting requests
