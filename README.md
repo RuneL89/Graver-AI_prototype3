@@ -11,6 +11,7 @@ The repository ships with four pre-ingested demo knowledge bases (business regis
 Graver-AI supports two main user journeys: **Data Ingestion** (Pipeline A) and **Investigation** (Pipeline B).
 
 ### Pipeline A: Turning Data into a Queryable Knowledge Base
+<img width="3152" height="282" alt="image" src="https://github.com/user-attachments/assets/f728fc44-e4b1-4680-9cea-abcf236c29ce" />
 
 When a user has a new dataset, they upload it through a drag-and-drop web interface. The system handles the rest:
 
@@ -22,7 +23,9 @@ When a user has a new dataset, they upload it through a drag-and-drop web interf
 
 The result is a two-layer architecture: the **database** contains the raw structured data, and the **wiki** contains a human-readable map that tells agents what questions each knowledge base can answer.
 
+
 ### Pipeline B: Investigating a Tip
+<img width="3305" height="357" alt="image" src="https://github.com/user-attachments/assets/63597f15-2d50-414d-beef-2074a94a914d" />
 
 When a user submits a free-text tip, the system runs a multi-agent investigation loop:
 
