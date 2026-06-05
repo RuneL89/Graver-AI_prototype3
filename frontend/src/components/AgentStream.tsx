@@ -23,6 +23,8 @@ export default function AgentStream({ investigationId, onComplete, maxRounds = 5
   const [autoScroll, setAutoScroll] = useState(true);
   const scrollRef = useRef<HTMLDivElement>(null);
   const eventsRef = useRef<StreamEvent[]>([]);
+  const retryCountRef = useRef(0);
+  const retryTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Keep ref in sync for scroll effect
   useEffect(() => {
@@ -30,40 +32,65 @@ export default function AgentStream({ investigationId, onComplete, maxRounds = 5
   }, [events]);
 
   useEffect(() => {
-    const es = new EventSource(`/api/investigate/${investigationId}/stream`);
+    const MAX_RETRIES = 5;
+    const BASE_DELAY_MS = 1000;
 
-    es.onopen = () => setConnected(true);
+    function connect() {
+      const es = new EventSource(`/api/investigate/${investigationId}/stream`);
 
-    es.onmessage = (e) => {
-      if (!e.data || e.data.startsWith(":")) return; // heartbeat
-      try {
-        const event: StreamEvent = JSON.parse(e.data);
-        setEvents((prev) => [...prev, event]);
+      es.onopen = () => {
+        setConnected(true);
+        retryCountRef.current = 0;
+      };
 
-        if (event.type === "stage_complete" && event.stage === "investigation") {
-          setDone(true);
-          es.close();
-          onComplete?.();
+      es.onmessage = (e) => {
+        if (!e.data || e.data.startsWith(":")) return; // heartbeat
+        try {
+          const event: StreamEvent = JSON.parse(e.data);
+          setEvents((prev) => [...prev, event]);
+
+          if (event.type === "stage_complete" && event.stage === "investigation") {
+            setDone(true);
+            es.close();
+            onComplete?.();
+          }
+          if (event.type === "error" && event.stage === "investigation") {
+            setDone(true);
+            es.close();
+            onComplete?.();
+          }
+        } catch {
+          // ignore parse errors
         }
-        if (event.type === "error" && event.stage === "investigation") {
-          setDone(true);
-          es.close();
-          onComplete?.();
-        }
-      } catch {
-        // ignore parse errors
-      }
-    };
+      };
 
-    es.onerror = () => {
-      setConnected(false);
-      es.close();
-    };
+      es.onerror = () => {
+        setConnected(false);
+        es.close();
+
+        if (done) return;
+
+        if (retryCountRef.current < MAX_RETRIES) {
+          retryCountRef.current += 1;
+          const delay = BASE_DELAY_MS * 2 ** (retryCountRef.current - 1);
+          retryTimeoutRef.current = setTimeout(() => {
+            connect();
+          }, delay);
+        }
+      };
+
+      return es;
+    }
+
+    const es = connect();
 
     return () => {
       es.close();
+      if (retryTimeoutRef.current) {
+        clearTimeout(retryTimeoutRef.current);
+      }
     };
-  }, [investigationId, onComplete]);
+  }, [investigationId, onComplete, done]);
 
   useEffect(() => {
     if (autoScroll && scrollRef.current) {

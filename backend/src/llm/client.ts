@@ -215,10 +215,62 @@ export class LLMClient {
       ? `${systemPrompt}\n\n${jsonInstruction}`
       : jsonInstruction;
 
-    const raw = await this.complete(prompt, fullSystem);
-    const cleaned = raw.replace(/^```json\s*/i, "").replace(/\s*```$/, "");
-    const parsed = JSON.parse(cleaned);
-    return schema.parse(parsed);
+    let lastParseError: Error | undefined;
+
+    for (let attempt = 0; attempt <= 2; attempt++) {
+      const currentPrompt = attempt > 0
+        ? `${prompt}\n\n[IMPORTANT: Your previous response was not valid JSON. Please respond with strictly valid JSON only, no markdown fences, no extra text.]`
+        : prompt;
+      const currentSystem = attempt > 0
+        ? `${fullSystem}\n\n[CRITICAL: Your previous response was not valid JSON. Respond with strictly valid JSON only.]`
+        : fullSystem;
+
+      try {
+        const raw = await this.complete(currentPrompt, currentSystem);
+        const parsed = this.parseJsonRobustly(raw);
+        return schema.parse(parsed);
+      } catch (err) {
+        lastParseError = err instanceof Error ? err : new Error(String(err));
+        if (lastParseError instanceof LLMProviderError) {
+          throw lastParseError;
+        }
+        // Retry on parse errors; loop again
+      }
+    }
+
+    throw new LLMProviderError(
+      `Failed to parse structured LLM response after 3 attempts. Last error: ${lastParseError?.message}`
+    );
+  }
+
+  private parseJsonRobustly(raw: string): unknown {
+    // Strip markdown fences
+    let cleaned = raw.replace(/^```json\s*/i, "").replace(/\s*```$/, "").trim();
+
+    // Try direct parse first
+    try {
+      return JSON.parse(cleaned);
+    } catch {
+      // Fall through to repair
+    }
+
+    // Extract first JSON object or array from surrounding text
+    const objectMatch = cleaned.match(/\{[\s\S]*\}/);
+    const arrayMatch = cleaned.match(/\[[\s\S]*\]/);
+    if (objectMatch && arrayMatch) {
+      const objStart = cleaned.indexOf(objectMatch[0]);
+      const arrStart = cleaned.indexOf(arrayMatch[0]);
+      cleaned = objStart < arrStart ? objectMatch[0] : arrayMatch[0];
+    } else if (objectMatch) {
+      cleaned = objectMatch[0];
+    } else if (arrayMatch) {
+      cleaned = arrayMatch[0];
+    }
+
+    // Repair trailing commas before ] and }
+    cleaned = cleaned.replace(/,(\s*[}\]])/g, "$1");
+
+    return JSON.parse(cleaned);
   }
 
   // -----------------------------------------------------------------------

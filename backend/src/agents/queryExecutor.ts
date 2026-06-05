@@ -15,6 +15,36 @@ export interface QueryExecutedPayload {
   durationMs?: number;
 }
 
+function resolveTableName(kbName: string): string {
+  const db = getDb();
+  // First, check if kbName is already a valid table
+  const directCheck = db.prepare(
+    "SELECT name FROM sqlite_master WHERE type='table' AND name = ?"
+  ).get(kbName);
+  if (directCheck) return kbName;
+
+  // Otherwise, try to map from wiki_name via ingestion_jobs
+  const row = db.prepare(
+    "SELECT schema_json FROM ingestion_jobs WHERE wiki_name = ?"
+  ).get(kbName) as { schema_json: string } | undefined;
+
+  if (row) {
+    try {
+      const schema = JSON.parse(row.schema_json) as { tableName?: string };
+      if (schema.tableName) {
+        const tableCheck = db.prepare(
+          "SELECT name FROM sqlite_master WHERE type='table' AND name = ?"
+        ).get(schema.tableName);
+        if (tableCheck) return schema.tableName;
+      }
+    } catch {
+      // fall through
+    }
+  }
+
+  return kbName;
+}
+
 export async function executeQueries(
   queries: Query[],
   exaClient?: ExaClient,
@@ -28,10 +58,11 @@ export async function executeQueries(
     try {
       if (query.type === "sql") {
         const db = getDb();
-        // Validate table reference
+        // Validate table reference (kbName may be a wiki name or table name)
+        const tableName = resolveTableName(query.kbName);
         const tableCheck = db.prepare(
           "SELECT name FROM sqlite_master WHERE type='table' AND name = ?"
-        ).get(query.kbName);
+        ).get(tableName);
 
         if (!tableCheck) {
           throw new Error(`Table ${query.kbName} not found`);

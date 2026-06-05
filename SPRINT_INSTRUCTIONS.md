@@ -24,7 +24,7 @@ This document is the anchor for all implementation work on Graver-AI. It tracks 
 | Sprint 5 | Investigation Pipeline Completion (Pipeline B — Part 2) | [plan/sprint-05-investigation-completion/instruction.md](plan/sprint-05-investigation-completion/instruction.md) | Complete |
 | Sprint 6 | Real-Time Streaming & UI Panels | [plan/sprint-06-streaming-ui/instruction.md](plan/sprint-06-streaming-ui/instruction.md) | Complete |
 | Sprint 7 | Demo Data Preparation & End-to-End Integration | [plan/sprint-07-demo-integration/instruction.md](plan/sprint-07-demo-integration/instruction.md) | Complete |
-| Sprint 8 | Documentation & README Finalization | [plan/sprint-08-documentation/instruction.md](plan/sprint-08-documentation/instruction.md) | Not Started |
+| Sprint 8 | Documentation & README Finalization | [plan/sprint-08-documentation/instruction.md](plan/sprint-08-documentation/instruction.md) | Complete |
 
 ## How to Use This Document
 

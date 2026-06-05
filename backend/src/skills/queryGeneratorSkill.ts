@@ -21,6 +21,7 @@ const inputSchema = z.object({
       name: z.string(),
       type: z.string(),
     })),
+    sampleRows: z.array(z.record(z.any())).optional(),
   })).optional(),
 });
 
@@ -128,7 +129,13 @@ export const queryGeneratorSkill: AgentSkill<Input, Output> = {
   outputSchema,
   async execute(input: Input, context: AgentContext): Promise<Output> {
     const schemaInfo = input.kbSchemas
-      ?.map((s) => `KB: ${s.kbName}\nTable: ${s.tableName}\nColumns: ${s.columns.map((c) => `${c.name} (${c.type})`).join(", ")}`)
+      ?.map((s) => {
+        let info = `KB: ${s.kbName}\nTable: ${s.tableName}\nColumns: ${s.columns.map((c) => `${c.name} (${c.type})`).join(", ")}`;
+        if (s.sampleRows && s.sampleRows.length > 0) {
+          info += `\nSample rows:\n${JSON.stringify(s.sampleRows, null, 2)}`;
+        }
+        return info;
+      })
       .join("\n\n---\n\n") ?? "(no schema info available)";
 
     const prompt = `You are a query generation specialist. Given a research sub-claim and assigned knowledge bases, generate precise queries.

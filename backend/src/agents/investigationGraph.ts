@@ -49,19 +49,35 @@ function emit(
   }
 }
 
-async function gatherKbIndexes(): Promise<{ kbName: string; indexContent: string }[]> {
+function getTableToWikiMapping(): Map<string, string> {
   const db = getDb();
-  const tables = db.prepare(
-    "SELECT name FROM sqlite_master WHERE type='table' AND name LIKE 'kb_%'"
-  ).all() as { name: string }[];
+  const rows = db.prepare(
+    "SELECT schema_json, wiki_name FROM ingestion_jobs WHERE wiki_name IS NOT NULL"
+  ).all() as { schema_json: string; wiki_name: string }[];
 
+  const mapping = new Map<string, string>();
+  for (const row of rows) {
+    try {
+      const schema = JSON.parse(row.schema_json) as { tableName?: string };
+      if (schema.tableName) {
+        mapping.set(schema.tableName, row.wiki_name);
+      }
+    } catch {
+      // skip malformed schema_json
+    }
+  }
+  return mapping;
+}
+
+async function gatherKbIndexes(): Promise<{ kbName: string; indexContent: string }[]> {
+  const tableToWiki = getTableToWikiMapping();
   const indexes: { kbName: string; indexContent: string }[] = [];
 
-  for (const { name } of tables) {
+  for (const [tableName, wikiName] of tableToWiki.entries()) {
     try {
-      const content = await readPage(name, "index.md");
+      const content = await readPage(wikiName, "index.md");
       if (content) {
-        indexes.push({ kbName: name, indexContent: content });
+        indexes.push({ kbName: wikiName, indexContent: content });
       }
     } catch {
       // skip if no wiki index
@@ -71,15 +87,47 @@ async function gatherKbIndexes(): Promise<{ kbName: string; indexContent: string
   return indexes;
 }
 
-async function gatherKbSchemas(kbNames: string[]): Promise<{ kbName: string; tableName: string; columns: { name: string; type: string }[] }[]> {
+function getWikiToTableMapping(): Map<string, string> {
   const db = getDb();
-  const schemas: { kbName: string; tableName: string; columns: { name: string; type: string }[] }[] = [];
+  const rows = db.prepare(
+    "SELECT schema_json, wiki_name FROM ingestion_jobs WHERE wiki_name IS NOT NULL"
+  ).all() as { schema_json: string; wiki_name: string }[];
+
+  const mapping = new Map<string, string>();
+  for (const row of rows) {
+    try {
+      const schema = JSON.parse(row.schema_json) as { tableName?: string };
+      if (schema.tableName) {
+        mapping.set(row.wiki_name, schema.tableName);
+      }
+    } catch {
+      // skip malformed schema_json
+    }
+  }
+  return mapping;
+}
+
+async function gatherKbSchemas(kbNames: string[]): Promise<{ kbName: string; tableName: string; columns: { name: string; type: string }[]; sampleRows: Record<string, unknown>[] }[]> {
+  const db = getDb();
+  const wikiToTable = getWikiToTableMapping();
+  const schemas: { kbName: string; tableName: string; columns: { name: string; type: string }[]; sampleRows: Record<string, unknown>[] }[] = [];
 
   for (const kbName of kbNames) {
+    const tableName = wikiToTable.get(kbName) || kbName;
     try {
-      const cols = db.prepare(`PRAGMA table_info("${kbName}")`).all() as { name: string; type: string }[];
+      const cols = db.prepare(`PRAGMA table_info("${tableName}")`).all() as { name: string; type: string }[];
       if (cols.length > 0) {
-        schemas.push({ kbName, tableName: kbName, columns: cols.map((c) => ({ name: c.name, type: c.type })) });
+        const sampleRows = db.prepare(`SELECT * FROM "${tableName}" LIMIT 3`).all() as Record<string, unknown>[];
+        // Truncate large TEXT/BLOB values in sample rows to keep context concise
+        for (const row of sampleRows) {
+          for (const key of Object.keys(row)) {
+            const val = row[key];
+            if (typeof val === "string" && val.length > 300) {
+              row[key] = val.slice(0, 300) + "...";
+            }
+          }
+        }
+        schemas.push({ kbName, tableName, columns: cols.map((c) => ({ name: c.name, type: c.type })), sampleRows });
       }
     } catch {
       // skip
@@ -91,12 +139,21 @@ async function gatherKbSchemas(kbNames: string[]): Promise<{ kbName: string; tab
 
 function buildCumulativeContext(state: InvestigationState): string {
   if (state.round <= 1 || state.evidence.length === 0) return "";
-  const evidenceSummary = state.evidence.map((e) =>
-    `- ${e.subClaimId} (${e.sourceType}): ${e.results.length} results`
-  ).join("\n");
+
+  const evidenceSummary = state.evidence.map((e) => {
+    let summary = `- ${e.subClaimId} (${e.sourceType}): ${e.results.length} results`;
+    if (e.results.length > 0) {
+      const samples = e.results.slice(0, 3);
+      const sampleStr = JSON.stringify(samples).slice(0, 800);
+      summary += `\n  Sample: ${sampleStr}${sampleStr.length >= 800 ? "..." : ""}`;
+    }
+    return summary;
+  }).join("\n");
+
   const connectionSummary = state.connections.map((c) =>
     `- ${c.entityIdentifier} (${c.confidence})`
   ).join("\n");
+
   return `Prior evidence:\n${evidenceSummary}\n\nPrior connections:\n${connectionSummary || "(none)"}`;
 }
 
