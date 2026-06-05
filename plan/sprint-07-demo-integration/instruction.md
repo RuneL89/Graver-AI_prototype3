@@ -4,13 +4,13 @@
 
 Before running validation, read the relevant documents for context:
 
-- **[DATASETS.md](../../DATASETS.md)** — Describes the four demo knowledge bases: what data they contain, how they were created, and why they are needed. This is the primary reference for the ingested data.
-- **[FRD_Graver_AI_Prototype.md](../../FRD_Graver_AI_Prototype.md)** — Functional Requirements Document
+- **[DATASETS.md](../DATASETS.md)** — Describes the four demo knowledge bases: what data they contain, how they were created, and why they are needed. This is the primary reference for the ingested data.
+- **[FRD_Graver_AI_Prototype.md](../FRD_Graver_AI_Prototype.md)** — Functional Requirements Document
   - **FRD Section 3.2** — Core Feature: Data Ingestion
   - **FRD Section 3.3** — Core Feature: Investigation
   - **FRD Section 7.1** — Performance (under 3 minutes target, SQLite query speed)
   - **FRD Section 7.2** — Error Handling (pipeline stops on failure, retry logic)
-- **[IMPLEMENTATION_PLAN_Graver_AI.md](../../IMPLEMENTATION_PLAN_Graver_AI.md)** — Sections 6.1 and 6.2 for demo data specifics and integrity check requirements.
+- **[IMPLEMENTATION_PLAN_Graver_AI.md](../IMPLEMENTATION_PLAN_Graver_AI.md)** — Sections 6.1 and 6.2 for demo data specifics and integrity check requirements.
 
 > **Note:** The four demo datasets have already been ingested into `backend/data/graver.db` and `backend/wiki/`. The original source CSVs were generated and discarded after ingestion. This sprint focuses on **verification and end-to-end validation**, not data generation.
 

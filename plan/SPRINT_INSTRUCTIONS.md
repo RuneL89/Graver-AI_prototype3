@@ -2,7 +2,7 @@
 
 ## Overview
 
-This document is the anchor for all implementation work on Graver-AI. It tracks the status of every sprint and provides directions to sprint-specific instruction files. Both this file and the [README.md](./README.md) must be updated as sprints progress.
+This document is the anchor for all implementation work on Graver-AI. It tracks the status of every sprint and provides directions to sprint-specific instruction files. Both this file and the [README.md](../README.md) must be updated as sprints progress.
 
 ## Sprint Progression Rules
 
@@ -10,7 +10,7 @@ This document is the anchor for all implementation work on Graver-AI. It tracks 
 2. **Acceptance Criteria Gate**: A sprint is not complete until **all** Technical Acceptance Criteria and **all** End-User Acceptance Criteria (UAT) have been met.
 3. **User Confirmation Required**: Before moving to the next sprint, the user must explicitly confirm that the UAT Criteria are accepted. Do not proceed without this confirmation.
 4. **Push to Main on UAT Acceptance**: Once the user confirms that the UAT Criteria are accepted, push the completed sprint to the Main branch.
-5. **README Update on Completion**: After each sprint (1–7), update the [README.md](./README.md) Sprint Status table to mark the completed sprint and reflect the current state.
+5. **README Update on Completion**: After each sprint (1–7), update the [README.md](../README.md) Sprint Status table to mark the completed sprint and reflect the current state.
 6. **FRD Reference**: Before starting any sprint, read the relevant sections of the [FRD_Graver_AI_Prototype.md](./FRD_Graver_AI_Prototype.md) as specified in each sprint instruction.
 
 ## Sprint Status

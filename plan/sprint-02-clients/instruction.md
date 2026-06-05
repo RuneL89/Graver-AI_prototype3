@@ -9,7 +9,7 @@ Before writing any code, read the relevant sections of the Functional Requiremen
 - **FRD Section 7.2** — Error Handling (exponential backoff, retry logic)
 - **FRD Section 7.3** — Security (API keys server-side only, masking)
 
-Refer to [FRD_Graver_AI_Prototype.md](../../FRD_Graver_AI_Prototype.md) for full requirement context.
+Refer to [FRD_Graver_AI_Prototype.md](../FRD_Graver_AI_Prototype.md) for full requirement context.
 
 ## Goal
 

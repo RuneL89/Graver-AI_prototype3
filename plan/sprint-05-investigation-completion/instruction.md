@@ -10,7 +10,7 @@ Before writing any code, read the relevant sections of the Functional Requiremen
 - **FRD Section 4.5** — Agent Orchestration (conditional edges, checkpointing, recursion limit)
 - **FRD Section 7.1** — Performance (under 3 minutes target)
 
-Refer to [FRD_Graver_AI_Prototype.md](../../FRD_Graver_AI_Prototype.md) for full requirement context.
+Refer to [FRD_Graver_AI_Prototype.md](../FRD_Graver_AI_Prototype.md) for full requirement context.
 
 ## Goal
 

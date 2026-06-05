@@ -8,7 +8,7 @@ Before writing any code, read the relevant sections of the Functional Requiremen
 - **FRD Section 5.1** — Pipeline A: Data Ingestion (Statistical Profiler, SQL Execution Engine, Wiki Architect, Wiki Writer)
 - **FRD Section 4.4** — Data Layer (SQLite + wiki file system relationship)
 
-Refer to [FRD_Graver_AI_Prototype.md](../../FRD_Graver_AI_Prototype.md) for full requirement context.
+Refer to [FRD_Graver_AI_Prototype.md](../FRD_Graver_AI_Prototype.md) for full requirement context.
 
 ## Goal
 

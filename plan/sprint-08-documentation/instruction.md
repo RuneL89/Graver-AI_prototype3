@@ -175,8 +175,13 @@ Provide a complete directory tree with descriptions for every folder and signifi
 graver-ai/
 ├── package.json                 — Root workspace config, dev scripts
 ├── README.md                    — This file
-├── SPRINT_INSTRUCTIONS.md       — Implementation anchor and sprint tracker
-├── DATASETS.md                  — Demo dataset provenance and methodology
+├── plan/
+│   ├── SPRINT_INSTRUCTIONS.md   — Implementation anchor and sprint tracker
+│   ├── DATASETS.md              — Demo dataset provenance and methodology
+│   ├── FRD_Graver_AI_Prototype.md — Functional Requirements Document
+│   ├── IMPLEMENTATION_PLAN_Graver_AI.md — Sprint-structured build sequence
+│   └── sprint-0N-*/
+│       └── instruction.md       — Sprint-specific implementation instructions
 ├── AGENTS.md                    — Agent guidance for AI coding assistants
 ├── shared/
 │   ├── package.json
@@ -271,7 +276,7 @@ graver-ai/
 
 ### 2. Update SPRINT_INSTRUCTIONS.md
 
-Mark Sprint 8 as **Complete** in [SPRINT_INSTRUCTIONS.md](../../SPRINT_INSTRUCTIONS.md).
+Mark Sprint 8 as **Complete** in [SPRINT_INSTRUCTIONS.md](../SPRINT_INSTRUCTIONS.md).
 
 Also update the [README.md](../../README.md) Sprint Status table to reflect that all 8 sprints are complete and the README has been replaced with permanent documentation.
 

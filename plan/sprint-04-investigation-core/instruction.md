@@ -9,7 +9,7 @@ Before writing any code, read the relevant sections of the Functional Requiremen
 - **FRD Section 3.4** — Core Feature: Real-Time Agent Monitoring (SSE streaming requirements)
 - **FRD Section 4.5** — Agent Orchestration (LangGraph.js StateGraph, checkpointing)
 
-Refer to [FRD_Graver_AI_Prototype.md](../../FRD_Graver_AI_Prototype.md) for full requirement context.
+Refer to [FRD_Graver_AI_Prototype.md](../FRD_Graver_AI_Prototype.md) for full requirement context.
 
 ## Goal
 

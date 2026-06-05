@@ -9,7 +9,7 @@ Before writing any code, read the relevant sections of the Functional Requiremen
 - **FRD Section 7.1** — Performance (smooth UI, no freezing)
 - **FRD Section 7.2** — Error Handling (retry from failed stage, error surfacing)
 
-Refer to [FRD_Graver_AI_Prototype.md](../../FRD_Graver_AI_Prototype.md) for full requirement context.
+Refer to [FRD_Graver_AI_Prototype.md](../FRD_Graver_AI_Prototype.md) for full requirement context.
 
 ## Goal
 

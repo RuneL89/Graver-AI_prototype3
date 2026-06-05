@@ -8,7 +8,7 @@ Before writing any code, read the relevant sections of the Functional Requiremen
 - **FRD Section 4.2** — Backend architecture and responsibilities
 - **FRD Section 4.4** — Data Layer (SQLite + markdown wiki file system)
 
-Refer to [FRD_Graver_AI_Prototype.md](../../FRD_Graver_AI_Prototype.md) for full requirement context.
+Refer to [FRD_Graver_AI_Prototype.md](../FRD_Graver_AI_Prototype.md) for full requirement context.
 
 ## Goal
 

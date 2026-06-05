@@ -63,15 +63,15 @@ It is an **agentic investigation engine** — not a fact-checker, not a summariz
 │   └── index.html
 ├── shared/                # Cross-cutting TypeScript types & Zod schemas
 │   └── types.ts
-├── plan/                  # Sprint instruction documents
-│   └── sprint-0N-*/
+├── plan/
+│   ├── DATASETS.md            # Description of the four demo knowledge base datasets
+│   ├── FRD_Graver_AI_Prototype.md       # Functional Requirements Document
+│   ├── IMPLEMENTATION_PLAN_Graver_AI.md # Sprint-structured build sequence
+│   ├── SPRINT_INSTRUCTIONS.md # Sprint progression tracker
+│   └── sprint-0N-*/           # Sprint-specific instruction documents
 ├── demo/                  # Reserved for demo data (currently empty)
 ├── AGENTS.md              # This file
-├── DATASETS.md            # Description of the four demo knowledge base datasets
-├── FRD_Graver_AI_Prototype.md       # Functional Requirements Document
-├── IMPLEMENTATION_PLAN_Graver_AI.md # Sprint-structured build sequence
-├── README.md              # Project README (to be replaced in Sprint 8)
-└── SPRINT_INSTRUCTIONS.md # Sprint progression tracker
+└── README.md              # Project README (to be replaced in Sprint 8)
 ```
 
 ---
@@ -269,7 +269,7 @@ export const mySkill: AgentSkill<Input, Output> = {
 Testing is done manually via:
 - The **Test LLM Connection** and **Test Exa Connection** buttons on the Config page.
 - End-to-end flows through the UI (upload → profile → approve → investigate).
-- Sprint-based UAT acceptance criteria (see `SPRINT_INSTRUCTIONS.md`).
+- Sprint-based UAT acceptance criteria (see `plan/SPRINT_INSTRUCTIONS.md`).
 
 If you add tests, follow the existing stack choices and place them near the code they test.
 
