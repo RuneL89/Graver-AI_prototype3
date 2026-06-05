@@ -95,10 +95,20 @@ function buildFindingsMarkdown(
   timestamp: string
 ): string {
   const findingsMd = dossier.findings.map((f) => {
+    const heading = f.claimText || f.subClaimId;
+    const idLabel = f.claimText ? ` *(${f.subClaimId})*` : "";
     const contra = f.contradictions.length > 0
-      ? `\n**Contradictions:** ${f.contradictions.join("; ")}\n`
+      ? `\n\n**Contradictions:**\n\n${f.contradictions.map((c) => `- ${c}`).join("\n")}\n`
       : "";
-    return `### ${f.subClaimId}\n\n**Confidence:** ${f.confidence}\n\n${f.narrative}${contra}`;
+    const sources = f.sources && f.sources.length > 0
+      ? `\n\n**Sources Used:**\n\n${f.sources.map((s) => {
+        if (s.sourceType === "exa" && s.link.startsWith("http")) {
+          return `- [${s.link}](${s.link}): ${s.description}`;
+        }
+        return `- ${s.link}: ${s.description}`;
+      }).join("\n")}\n`
+      : "";
+    return `### ${heading}${idLabel}\n\n**Confidence:** ${f.confidence}\n\n${f.narrative}${contra}${sources}`;
   }).join("\n\n---\n\n");
 
   const connectionsMd = dossier.connections.map((c) =>
@@ -109,9 +119,10 @@ function buildFindingsMarkdown(
     ? dossier.gaps.map((g) => `- ${g}`).join("\n")
     : "_No significant gaps identified._";
 
-  const attributionMd = dossier.sourceAttribution.map((a) =>
-    `- ${a.claim} — *${a.sourceType}*: ${a.sourceDetail}`
-  ).join("\n");
+  const attributionMd = dossier.sourceAttribution.map((a) => {
+    const detail = a.sourceDetail;
+    return `- ${a.claim} — *${a.sourceType}*: ${detail}`;
+  }).join("\n");
 
   const nextStepsMd = dossier.suggestedNextSteps.map((s) => `- ${s}`).join("\n");
 

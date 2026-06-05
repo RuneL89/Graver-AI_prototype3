@@ -133,6 +133,11 @@ export interface Synthesis {
   narrative: string;
   confidence: "HIGH" | "MEDIUM" | "LOW";
   contradictions: string[];
+  sources?: Array<{
+    sourceType: "sqlite" | "exa";
+    link: string;
+    description: string;
+  }>;
 }
 
 export interface Dossier {

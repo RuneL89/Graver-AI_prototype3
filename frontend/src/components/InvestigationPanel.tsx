@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect } from "react";
 import AgentStream from "./AgentStream";
 import DossierViewer from "./DossierViewer";
 import ErrorDisplay from "./ErrorDisplay";
+import { useConfigContext } from "../context/ConfigContext.js";
 import type { Dossier } from "@graver-ai/shared";
 
 const RECENT_TIPS_KEY = "graver_recent_tips";
@@ -24,6 +25,7 @@ function saveRecentTip(tip: string) {
 }
 
 export default function InvestigationPanel() {
+  const config = useConfigContext();
   const [tip, setTip] = useState("");
   const [investigationId, setInvestigationId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -202,6 +204,7 @@ export default function InvestigationPanel() {
         <AgentStream
           investigationId={investigationId}
           onComplete={handleComplete}
+          maxRounds={config.state.maxInvestigationRounds}
         />
       )}
 

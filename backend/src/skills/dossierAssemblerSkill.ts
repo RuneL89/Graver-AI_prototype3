@@ -103,7 +103,34 @@ const outputSchema = z.object({
 type Input = z.infer<typeof inputSchema>;
 type Output = z.infer<typeof outputSchema>;
 
-function normalizeDossier(raw: z.infer<typeof rawOutputSchema>, inputSynthesis: Synthesis[], subClaims: { id: string; claimText: string }[]): Dossier {
+function buildSourcesForFinding(subClaimId: string, evidence: EvidenceBundle[]): Synthesis["sources"] {
+  const sources: NonNullable<Synthesis["sources"]> = [];
+  for (const e of evidence) {
+    if (e.subClaimId !== subClaimId) continue;
+    if (e.sourceType === "exa") {
+      const results = e.results as Array<{ url?: string; title?: string }>;
+      const urls = results.slice(0, 3).map((r) => r.url).filter(Boolean) as string[];
+      if (urls.length > 0) {
+        sources.push({
+          sourceType: "exa",
+          link: urls[0],
+          description: `Exa search "${e.query}" returned ${results.length} result${results.length === 1 ? "" : "s"}.`,
+        });
+      }
+    } else {
+      const tableMatch = e.query.match(/FROM\s+([a-zA-Z0-9_]+)/i);
+      const tableName = tableMatch ? tableMatch[1] : "sqlite_data";
+      sources.push({
+        sourceType: "sqlite",
+        link: `[source: ${tableName}]`,
+        description: `SQLite query on ${tableName} returned ${e.results.length} result${e.results.length === 1 ? "" : "s"}.`,
+      });
+    }
+  }
+  return sources.length > 0 ? sources : undefined;
+}
+
+function normalizeDossier(raw: z.infer<typeof rawOutputSchema>, inputSynthesis: Synthesis[], subClaims: { id: string; claimText: string }[], evidence: EvidenceBundle[]): Dossier {
   const executiveSummary = raw.executiveSummary || raw.summary || "No executive summary provided.";
 
   const findings: Synthesis[] = (raw.findings || []).map((f) => {
@@ -115,6 +142,7 @@ function normalizeDossier(raw: z.infer<typeof rawOutputSchema>, inputSynthesis: 
       narrative: f.narrative || "(no narrative)",
       confidence: f.confidence || "MEDIUM",
       contradictions: Array.isArray(f.contradictions) ? f.contradictions : f.contradictions ? [f.contradictions] : [],
+      sources: buildSourcesForFinding(subClaimId, evidence),
     };
   });
 
@@ -122,6 +150,7 @@ function normalizeDossier(raw: z.infer<typeof rawOutputSchema>, inputSynthesis: 
   const finalFindings = findings.length > 0 ? findings : inputSynthesis.map((s) => ({
     ...s,
     claimText: s.claimText || subClaims.find((sc) => sc.id === s.subClaimId)?.claimText || s.narrative.slice(0, 100),
+    sources: buildSourcesForFinding(s.subClaimId, evidence),
   }));
 
   const connections: ConnectionFinding[] = (raw.connections || []).map((c) => {
@@ -177,9 +206,22 @@ export const dossierAssemblerSkill: AgentSkill<Input, Output> = {
       `- ${c.entityIdentifier} (${c.confidence}): ${c.notes} [${c.sources.join(", ")}]`
     ).join("\n");
 
-    const evidenceSummary = input.evidence.map((e) =>
-      `- ${e.sourceType}: ${e.query} (${e.results.length} results)`
-    ).join("\n");
+    const evidenceSummary = input.evidence.map((e) => {
+      let summary = `- ${e.sourceType}: ${e.query} (${e.results.length} results)`;
+      if (e.sourceType === "exa") {
+        const results = e.results as Array<{ url?: string; title?: string }>;
+        const urls = results.slice(0, 3).map((r) => r.url).filter(Boolean) as string[];
+        if (urls.length > 0) {
+          summary += `\n  URLs: ${urls.join(", ")}`;
+        }
+      } else {
+        const tableMatch = e.query.match(/FROM\s+([a-zA-Z0-9_]+)/i);
+        if (tableMatch) {
+          summary += `\n  Table: ${tableMatch[1]}`;
+        }
+      }
+      return summary;
+    }).join("\n");
 
     const gapText = input.gapSuggestions && input.gapSuggestions.length > 0
       ? `\n\nGAP SUGGESTIONS FROM AUDITOR:\n${input.gapSuggestions.join("\n")}`
@@ -211,11 +253,16 @@ ${gapText}
 
 Format a structured dossier with these sections. Return JSON with these exact fields:
 - "executiveSummary": 2-3 paragraph executive summary of the investigation
-- "findings": array of finding objects, one per sub-claim, each with "subClaimId", "claimText" (the original sub-claim text from the list above), "narrative", "confidence", "contradictions"
-- "connections": array of connection objects with "entityIdentifier", "sources" (array of strings), "confidence", "notes"
+- "findings": array of finding objects, one per sub-claim, each with:
+  - "subClaimId": the sub-claim ID
+  - "claimText": the original sub-claim text (use this as the heading, not the ID)
+  - "narrative": the finding narrative. Place contradictions on a separate line after a blank line, not inline.
+  - "confidence": "HIGH", "MEDIUM", or "LOW"
+  - "contradictions": array of strings
+- "connections": array of connection objects with "entityIdentifier" (use wikilink syntax [[name]] when referring to wiki entities), "sources" (array of strings), "confidence", "notes"
 - "gaps": array of strings describing evidence gaps
 - "overallConfidence": "HIGH", "MEDIUM", or "LOW" for the entire investigation
-- "sourceAttribution": array of objects with "claim", "sourceType" ("sqlite" or "exa"), "sourceDetail" (query or search string)
+- "sourceAttribution": array of objects with "claim", "sourceType" ("sqlite" or "exa"), "sourceDetail". For Exa sources, include the URL in markdown format like [search query](url). For SQLite, include the table reference if known.
 - "suggestedNextSteps": array of strings with actionable next steps for human follow-up
 
 Respond with JSON containing all fields.`;
@@ -223,7 +270,7 @@ Respond with JSON containing all fields.`;
     context.emitReasoning?.("Assembling final investigation dossier...\n");
 
     const rawResult = await context.llmClient.completeStructured(prompt, rawOutputSchema);
-    const result = normalizeDossier(rawResult, input.synthesis as Synthesis[], input.subClaims || []);
+    const result = normalizeDossier(rawResult, input.synthesis as Synthesis[], input.subClaims || [], input.evidence as EvidenceBundle[]);
 
     context.emitReasoning?.(`Dossier assembled: ${result.findings.length} findings, ${result.connections.length} connections, ${result.gaps.length} gaps.\n`);
     context.emitReasoning?.(`Overall confidence: ${result.overallConfidence}\n`);

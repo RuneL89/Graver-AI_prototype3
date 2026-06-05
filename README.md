@@ -39,7 +39,7 @@ Graver-AI is a browser-based research acceleration tool for investigative journa
 | Sprint 4 | Investigation Pipeline Core (Pipeline B — Part 1) | ✅ Complete |
 | Sprint 5 | Investigation Pipeline Completion (Pipeline B — Part 2) | ✅ Complete |
 | Sprint 6 | Real-Time Streaming & UI Panels | ✅ Complete |
-| Sprint 7 | Demo Data Preparation & End-to-End Integration | Not Started |
+| Sprint 7 | Demo Data Preparation & End-to-End Integration | ✅ Complete |
 | Sprint 8 | Documentation & README Finalization | Not Started |
 
 ## How to Implement
