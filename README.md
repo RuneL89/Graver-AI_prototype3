@@ -3,6 +3,8 @@
 Graver-AI is a browser-based research acceleration tool for investigative journalists and researchers. A user enters a plain-language tip (for example, a question about whether military equipment from one country contributes to a conflict in another) and the system decomposes it into researchable sub-claims, queries multiple structured knowledge bases in parallel, discovers cross-source connections, and produces a structured investigation dossier with full source attribution and confidence ratings. It is an **agentic investigation engine** that discovers leads from structured data for human investigators to follow up on.
 
 The repository ships with four pre-ingested demo knowledge bases (business registries, export licenses, defense procurement programs, and conflict incident records) so the system can be evaluated immediately. These datasets illustrate cross-source tracing capabilities, but Graver-AI is built as a general-purpose platform: point it at any collection of structured CSV or JSON datasets and it will build a queryable knowledge base and investigate tips against it.
+<img width="936" height="527" alt="image" src="https://github.com/user-attachments/assets/10b8c1e8-9dbd-447c-998d-e0a3e1e89c3d" />
+
 
 ---
 
@@ -11,6 +13,7 @@ The repository ships with four pre-ingested demo knowledge bases (business regis
 Graver-AI supports two main user journeys: **Data Ingestion** (Pipeline A) and **Investigation** (Pipeline B).
 
 ### Pipeline A: Turning Data into a Queryable Knowledge Base
+<img width="3152" height="282" alt="image" src="https://github.com/user-attachments/assets/f728fc44-e4b1-4680-9cea-abcf236c29ce" />
 
 When a user has a new dataset, they upload it through a drag-and-drop web interface. The system handles the rest:
 
@@ -22,7 +25,9 @@ When a user has a new dataset, they upload it through a drag-and-drop web interf
 
 The result is a two-layer architecture: the **database** contains the raw structured data, and the **wiki** contains a human-readable map that tells agents what questions each knowledge base can answer.
 
+
 ### Pipeline B: Investigating a Tip
+<img width="3305" height="357" alt="image" src="https://github.com/user-attachments/assets/63597f15-2d50-414d-beef-2074a94a914d" />
 
 When a user submits a free-text tip, the system runs a multi-agent investigation loop:
 
