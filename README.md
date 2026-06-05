@@ -3,6 +3,8 @@
 Graver-AI is a browser-based research acceleration tool for investigative journalists and researchers. A user enters a plain-language tip (for example, a question about whether military equipment from one country contributes to a conflict in another) and the system decomposes it into researchable sub-claims, queries multiple structured knowledge bases in parallel, discovers cross-source connections, and produces a structured investigation dossier with full source attribution and confidence ratings. It is an **agentic investigation engine** that discovers leads from structured data for human investigators to follow up on.
 
 The repository ships with four pre-ingested demo knowledge bases (business registries, export licenses, defense procurement programs, and conflict incident records) so the system can be evaluated immediately. These datasets illustrate cross-source tracing capabilities, but Graver-AI is built as a general-purpose platform: point it at any collection of structured CSV or JSON datasets and it will build a queryable knowledge base and investigate tips against it.
+<img width="936" height="527" alt="image" src="https://github.com/user-attachments/assets/10b8c1e8-9dbd-447c-998d-e0a3e1e89c3d" />
+
 
 ---
 
