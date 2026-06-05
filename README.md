@@ -126,7 +126,7 @@ The four pre-ingested knowledge bases are stored as separate tables within a sin
 
 Shared identifiers allow the agent to *attempt* cross-source connections, but the system discovers leads rather than following a scripted path. The datasets contain substantial noise (hundreds of unrelated records across multiple conflicts, companies, and product categories) so the agent must genuinely search and filter, not retrieve pre-stitched results.
 
-The `demo/` directory at the repository root is reserved for future dataset storage but is currently empty. The ingested data lives in `backend/data/` (SQLite) and `backend/wiki/` (markdown), both gitignored.
+The `demo/` directory at the repository root is reserved for future dataset storage but is currently empty. The ingested data lives in `backend/data/` (SQLite, tracked via Git LFS) and `backend/wiki/` (markdown), both included in the repository so the system works immediately after cloning.
 
 ---
 
@@ -384,6 +384,7 @@ graver-ai/
 
 - Node.js 20+
 - npm 10+
+- [Git LFS](https://git-lfs.com/) (required to clone the 1 GB SQLite database)
 - An LLM API key (OpenAI, Anthropic, Gemini, OpenRouter, or custom endpoint)
 - An Exa.ai API key (for web search)
 
@@ -392,6 +393,9 @@ graver-ai/
 ```bash
 # Install dependencies for all workspaces
 npm install
+
+# Pull the large SQLite database tracked via Git LFS
+git lfs pull
 
 # Configure environment
 # Edit backend/.env with your LLM and Exa API keys,
