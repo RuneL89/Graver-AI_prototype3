@@ -49,6 +49,7 @@ When a user submits a free-text tip, the system runs a multi-agent investigation
 10. **Wiki Writeback**. The investigation findings are filed as new markdown pages in the wiki, and relevant KB index pages are updated to note new cross-KB connections. The wiki compounds over time.
 11. **Knowledge Graph Visualization**. The completed dossier can be explored as an interactive bubble-layout graph: the tip sits at the center, sub-claims orbit around it, sources orbit around their parent sub-claims, and discovered entities sit on an outer ring. Clicking any node highlights its connections. Clicking a SQLite source opens a modal with the original query and its result rows; clicking an Exa source opens the article in a new tab.
 
+
 The loop has a hard safety cap of **5 rounds**. After 5 rounds, the system stops regardless of the auditor's decision to prevent runaway investigations.
 
 ### Pre-Ingested Demo Datasets
