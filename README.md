@@ -47,6 +47,7 @@ When a user submits a free-text tip, the system runs a multi-agent investigation
    - **STOP_WITH_GAPS**, Coverage holes exist that cannot be filled by available data.
 9. **Dossier Assembly**. If stopped, a final agent formats a structured markdown dossier with: Executive Summary, Findings by Sub-Claim, Cross-Source Connections, Evidence Gaps, Confidence Summary, Source Attribution, and Suggested Next Steps.
 10. **Wiki Writeback**. The investigation findings are filed as new markdown pages in the wiki, and relevant KB index pages are updated to note new cross-KB connections. The wiki compounds over time.
+11. **Knowledge Graph Visualization**. The completed dossier can be explored as an interactive bubble-layout graph: the tip sits at the center, sub-claims orbit around it, sources orbit around their parent sub-claims, and discovered entities sit on an outer ring. Clicking any node highlights its connections. Clicking a SQLite source opens a modal with the original query and its result rows; clicking an Exa source opens the article in a new tab.
 
 The loop has a hard safety cap of **5 rounds**. After 5 rounds, the system stops regardless of the auditor's decision to prevent runaway investigations.
 
@@ -244,6 +245,9 @@ The frontend Vite config proxies `/api` to `http://localhost:3001` with an infin
   - `AgentInventory`, Sidebar listing all investigation and ingestion agents with descriptions
   - `ErrorDisplay`, Retryable error card with stage context
   - `SourceTableModal`, SQLite table browser modal triggered by `[source: table_name]` citations
+  - `KnowledgeGraph`, Interactive React Flow bubble-layout graph of investigation results with click-to-highlight and source drill-down
+  - `InvestigationGraphModal`, Modal wrapper that fetches a persisted investigation and renders its `KnowledgeGraph`
+  - `SourceQueryModal`, SQLite query preview modal showing the original SQL and result rows for a clicked graph source node
 - **Styling**: Tailwind utility classes throughout. No component libraries.
 - **Icons**: Individual imports from `lucide-react`
 
@@ -372,7 +376,11 @@ graver-ai/
 │           ├── InvestigationPanel.tsx - Tip input, start/cancel/retry, results display
 │           ├── AgentInventory.tsx    - Sidebar listing all agents with descriptions
 │           ├── ErrorDisplay.tsx      - Retryable error card with stage context
-│           └── SourceTableModal.tsx  - SQLite table browser modal with pagination
+│           ├── SourceTableModal.tsx  - SQLite table browser modal with pagination
+│           ├── KnowledgeGraph.tsx      - Interactive bubble-layout investigation graph
+│           ├── InvestigationGraphModal.tsx - Modal wrapper for persisted investigation graphs
+│           ├── SourceQueryModal.tsx    - SQLite query + results preview for graph sources
+│           └── ... (other components)
 └── demo/                      - Reserved for demo dataset storage (currently empty)
 ```
 

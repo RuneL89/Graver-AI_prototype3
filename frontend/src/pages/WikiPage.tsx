@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import SourceTableModal from "../components/SourceTableModal";
+import SourceTableModal from "../components/SourceTableModal.js";
+import InvestigationGraphModal from "../components/InvestigationGraphModal.js";
 
 interface KBEntry {
   name: string;
@@ -21,6 +22,8 @@ export default function WikiViewerPage() {
   const [newPageName, setNewPageName] = useState("");
   const [newPageKb, setNewPageKb] = useState("");
   const [sourceModalTable, setSourceModalTable] = useState<string | null>(null);
+  const [frontmatter, setFrontmatter] = useState<Record<string, string>>({});
+  const [graphModalOpen, setGraphModalOpen] = useState(false);
 
   useEffect(() => {
     fetchKbs();
@@ -53,7 +56,9 @@ export default function WikiViewerPage() {
         setError(data.error || "Failed to load page");
         return;
       }
-      setContent(data.content);
+      const parsed = parseFrontmatter(data.content);
+      setContent(parsed.body);
+      setFrontmatter(parsed.frontmatter);
       setSelectedKb(kbName);
       setSelectedPage(pagePath);
     } catch (err: any) {
@@ -86,6 +91,29 @@ export default function WikiViewerPage() {
         return `[source: ${tableName}](/source/${tableName})`;
       }
     );
+  }
+
+  function parseFrontmatter(content: string): { frontmatter: Record<string, string>; body: string } {
+    const fmRegex = /^---\s*\n([\s\S]*?)\n---\s*\n?/;
+    const match = content.match(fmRegex);
+    if (!match) {
+      return { frontmatter: {}, body: content };
+    }
+    const raw = match[1];
+    const frontmatter: Record<string, string> = {};
+    for (const line of raw.split("\n")) {
+      const idx = line.indexOf(":");
+      if (idx > 0) {
+        const key = line.slice(0, idx).trim();
+        let value = line.slice(idx + 1).trim();
+        // Remove surrounding quotes if present
+        if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
+          value = value.slice(1, -1);
+        }
+        frontmatter[key] = value;
+      }
+    }
+    return { frontmatter, body: content.slice(match[0].length) };
   }
 
   function handleLinkClick(e: React.MouseEvent<HTMLAnchorElement>) {
@@ -327,8 +355,19 @@ export default function WikiViewerPage() {
               <p className="text-gray-500">Select a page from the sidebar to view it.</p>
             )}
             {!loading && !error && content && selectedKb && (
-              <article className="prose prose-slate max-w-none">
-                <ReactMarkdown
+              <>
+                {frontmatter.investigation_id && (
+                  <div className="mb-4">
+                    <button
+                      onClick={() => setGraphModalOpen(true)}
+                      className="inline-flex items-center gap-2 px-4 py-2 bg-slate-800 text-white rounded hover:bg-slate-700 transition-colors text-sm"
+                    >
+                      View Knowledge Graph
+                    </button>
+                  </div>
+                )}
+                <article className="prose prose-slate max-w-none">
+                  <ReactMarkdown
                   remarkPlugins={[remarkGfm]}
                   components={{
                     a: ({ node: _node, children, href, ...props }) => {
@@ -362,7 +401,8 @@ export default function WikiViewerPage() {
                 >
                   {processSourceRefs(processWikilinks(content, selectedKb))}
                 </ReactMarkdown>
-              </article>
+                </article>
+              </>
             )}
           </div>
         </main>
@@ -371,6 +411,12 @@ export default function WikiViewerPage() {
         <SourceTableModal
           tableName={sourceModalTable}
           onClose={() => setSourceModalTable(null)}
+        />
+      )}
+      {graphModalOpen && frontmatter.investigation_id && (
+        <InvestigationGraphModal
+          investigationId={frontmatter.investigation_id}
+          onClose={() => setGraphModalOpen(false)}
         />
       )}
     </div>

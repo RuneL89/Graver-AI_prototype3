@@ -3,7 +3,7 @@ import AgentStream from "./AgentStream";
 import DossierViewer from "./DossierViewer";
 import ErrorDisplay from "./ErrorDisplay";
 import { useConfigContext } from "../context/ConfigContext.js";
-import type { Dossier } from "@graver-ai/shared";
+import type { Dossier, EvidenceBundle } from "@graver-ai/shared";
 
 const RECENT_TIPS_KEY = "graver_recent_tips";
 const MAX_RECENT_TIPS = 10;
@@ -30,7 +30,13 @@ export default function InvestigationPanel() {
   const [investigationId, setInvestigationId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [results, setResults] = useState<{ status: string; evidenceCount: number; dossier: Dossier | null; error?: string } | null>(null);
+  const [results, setResults] = useState<{
+    status: string;
+    evidenceCount: number;
+    dossier: Dossier | null;
+    rawEvidence?: EvidenceBundle[];
+    error?: string;
+  } | null>(null);
   const [recentTips, setRecentTips] = useState<string[]>(loadRecentTips());
   const [showRecentTips, setShowRecentTips] = useState(false);
   const [cancelling, setCancelling] = useState(false);
@@ -241,7 +247,10 @@ export default function InvestigationPanel() {
           </div>
 
           {results.dossier && (
-            <DossierViewer dossier={results.dossier} />
+            <DossierViewer
+              dossier={results.dossier}
+              rawEvidence={results.rawEvidence}
+            />
           )}
         </div>
       )}

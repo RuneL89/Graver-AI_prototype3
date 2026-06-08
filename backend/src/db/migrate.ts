@@ -16,6 +16,17 @@ const MIGRATIONS = [
   `ALTER TABLE ingestion_jobs ADD COLUMN wiki_name TEXT;`,
   `ALTER TABLE ingestion_jobs ADD COLUMN progress_message TEXT;`,
   `ALTER TABLE ingestion_jobs ADD COLUMN profiling_results_json TEXT;`,
+  `
+  CREATE TABLE IF NOT EXISTS investigations (
+    id TEXT PRIMARY KEY,
+    tip TEXT NOT NULL,
+    status TEXT NOT NULL,
+    dossier_json TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    completed_at DATETIME
+  );
+  `,
+  `ALTER TABLE investigations ADD COLUMN evidence_json TEXT;`,
 ];
 
 export function runMigrations(): void {

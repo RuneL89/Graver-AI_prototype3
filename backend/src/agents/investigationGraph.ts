@@ -474,7 +474,7 @@ function createGraph(services: InvestigationGraphServices) {
       gapsCount: result.gaps.length,
     });
 
-    return { dossier: result as Dossier };
+    return { dossier: result as Dossier, rawEvidence: state.evidence };
   };
 
   const writebackNode = async (state: InvestigationState): Promise<Partial<InvestigationState>> => {
@@ -486,7 +486,7 @@ function createGraph(services: InvestigationGraphServices) {
       return {};
     }
 
-    const investigationId = `inv-${Date.now()}`;
+    const investigationId = state.id || `inv-${Date.now()}`;
 
     const result = await wikiWritebackSkill.execute(
       {
@@ -515,6 +515,7 @@ function createGraph(services: InvestigationGraphServices) {
 
   const graph = new StateGraph<InvestigationState>({
     channels: {
+      id: { value: (x, y) => y ?? x },
       tip: { value: (x, y) => y ?? x, default: () => "" },
       round: { value: (x, y) => y ?? x, default: () => 1 },
       maxRounds: { value: (x, y) => y ?? x, default: () => 5 },
@@ -525,6 +526,7 @@ function createGraph(services: InvestigationGraphServices) {
       synthesis: { value: (x, y) => y ?? x, default: () => [] },
       connections: { value: (x, y) => y ?? x, default: () => [] },
       dossier: { value: (x, y) => y ?? x },
+      rawEvidence: { value: (x, y) => y ?? x },
       auditDecision: { value: (x, y) => y ?? x },
       error: { value: (x, y) => y ?? x },
     },

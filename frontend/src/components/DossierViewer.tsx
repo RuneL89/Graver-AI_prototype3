@@ -1,11 +1,13 @@
 import { useState } from "react";
-import { AlertTriangle, ExternalLink } from "lucide-react";
+import { AlertTriangle, ExternalLink, Network } from "lucide-react";
+import InvestigationGraphModal from "./InvestigationGraphModal.js";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import type { Dossier } from "@graver-ai/shared";
+import type { Dossier, EvidenceBundle } from "@graver-ai/shared";
 
 interface Props {
   dossier: Dossier;
+  rawEvidence?: EvidenceBundle[];
 }
 
 function ConfidenceBadge({ confidence }: { confidence: "HIGH" | "MEDIUM" | "LOW" }) {
@@ -82,13 +84,32 @@ function SourceLink({ link, sourceType }: { link: string; sourceType: "sqlite" |
   );
 }
 
-export default function DossierViewer({ dossier }: Props) {
+export default function DossierViewer({ dossier, rawEvidence }: Props) {
+  const [graphOpen, setGraphOpen] = useState(false);
+
   return (
     <div className="bg-white rounded-lg shadow p-6 space-y-4">
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-bold text-slate-800">Investigation Dossier</h3>
-        <ConfidenceBadge confidence={dossier.overallConfidence} />
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setGraphOpen(true)}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 text-white rounded hover:bg-slate-700 transition-colors text-xs font-medium"
+          >
+            <Network className="w-3.5 h-3.5" />
+            View Knowledge Graph
+          </button>
+          <ConfidenceBadge confidence={dossier.overallConfidence} />
+        </div>
       </div>
+
+      {graphOpen && (
+        <InvestigationGraphModal
+          dossier={dossier}
+          onClose={() => setGraphOpen(false)}
+          rawEvidence={rawEvidence}
+        />
+      )}
 
       {/* Executive Summary — always expanded */}
       <CollapsibleSection title="Executive Summary" defaultOpen={true}>

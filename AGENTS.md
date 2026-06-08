@@ -129,7 +129,7 @@ npm run build -w shared      # tsc (emits to shared/dist/)
 
 **Key runtime behaviors:**
 - The backend runs SQLite migrations automatically on startup.
-- Investigations run in-memory only (no persistence). Sessions are stored in a `Map` and streamed via SSE.
+- Investigations run in-memory during execution (SSE streaming via `Map` sessions). Completed investigations are persisted to the SQLite `investigations` table (`dossier_json`, `evidence_json`) so they can be retrieved later via `GET /api/investigations` and `GET /api/investigations/:id`.
 - File uploads are written to `/tmp` (or `UPLOAD_TMP_DIR`), then parsed into SQLite.
 - The frontend uses `localStorage` to cache recent investigation tips (`graver_recent_tips`).
 
@@ -151,9 +151,10 @@ npm run build -w shared      # tsc (emits to shared/dist/)
 | `llm/errors.ts` | Typed error classes: `LLMRateLimitError`, `LLMTimeoutError`, `LLMProviderError` |
 | `exa/client.ts` | Exa.ai search & contents. Jittered retry logic. |
 | `routes/ingest.ts` | Upload, chunked upload, profiling, planning, approval, wiki write. Also supports async pipeline execution with client polling. |
-| `routes/investigate.ts` | Start, cancel, retry, SSE stream, status/fetch endpoints |
+| `routes/investigate.ts` | Start, cancel, retry, SSE stream, status/fetch endpoints. Persists completed investigations (`dossier_json` + `evidence_json`) to SQLite. Serves `GET /api/investigations` and `GET /api/investigations/:id`. |
 | `routes/wiki.ts` | KB listing, page CRUD, rename, delete KB |
 | `routes/source.ts` | SQLite table browsing, pagination |
+| `db/migrate.ts` | Includes `investigations` table migration for persisting completed investigation dossiers and raw evidence bundles |
 | `agents/investigationGraph.ts` | LangGraph: decomposer → navigator → generator → executor → resolver → synthesizer → auditor → [loop or assembler → writeback] |
 | `agents/ingestionGraph.ts` | LangGraph definition for profiler → sqlExecution → architect → humanGate → writer (exists but the primary ingestion flow runs via async endpoints in `routes/ingest.ts`) |
 | `agents/queryExecutor.ts` | Parallel execution of SQLite and Exa queries |
@@ -177,6 +178,9 @@ npm run build -w shared      # tsc (emits to shared/dist/)
 | `components/AgentInventory.tsx` | Sidebar listing all investigation and ingestion agents with descriptions |
 | `components/ErrorDisplay.tsx` | Retryable error card with stage context |
 | `components/SourceTableModal.tsx` | SQLite table browser modal with pagination |
+| `components/KnowledgeGraph.tsx` | React Flow bubble-layout graph: tip at center, sub-claims orbiting, sources per sub-claim, entities on outer ring. Click-to-highlight connections. Source clicks open SQLite query modal or Exa URL. |
+| `components/InvestigationGraphModal.tsx` | Modal that fetches investigation (dossier + rawEvidence) and renders `KnowledgeGraph`. Manages `SourceQueryModal` state for SQLite source previews. |
+| `components/SourceQueryModal.tsx` | 60% viewport modal showing the original SQL query and its result rows for a clicked SQLite source node |
 | `context/ConfigContext.tsx` | Global config state synced with `/api/config` |
 | `context/AppContext.tsx` | Global app state (active tab) |
 
@@ -308,7 +312,8 @@ If you add tests, follow the existing stack choices and place them near the code
 8. `gapAuditorSkill` decides: CONTINUE, STOP_COMPLETE, or STOP_WITH_GAPS.
 9. If CONTINUE and rounds < max → loop back to navigator with cumulative context.
 10. `dossierAssemblerSkill` formats the final dossier.
-11. `wikiWritebackSkill` files findings into the wiki.
+11. Completed investigations are persisted to the SQLite `investigations` table (`dossier_json`, `evidence_json`, `tip`, `status`, `completed_at`).
+12. `wikiWritebackSkill` files findings into the wiki with YAML frontmatter containing `investigation_id`.
 
 All stages emit SSE events (`stage_start`, `reasoning`, `query_executed`, `stage_complete`, `error`) consumed by `AgentStream.tsx`.
 

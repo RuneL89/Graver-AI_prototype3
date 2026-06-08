@@ -194,6 +194,7 @@ export interface ExaQuery {
 export type Query = SqlQuery | ExaQuery;
 
 export interface InvestigationState {
+  id?: string;
   tip: string;
   round: number;
   maxRounds: number;
@@ -204,6 +205,7 @@ export interface InvestigationState {
   synthesis: Synthesis[];
   connections: ConnectionFinding[];
   dossier?: Dossier;
+  rawEvidence?: EvidenceBundle[];
   auditDecision?: "CONTINUE" | "STOP_COMPLETE" | "STOP_WITH_GAPS";
   error?: string;
 }

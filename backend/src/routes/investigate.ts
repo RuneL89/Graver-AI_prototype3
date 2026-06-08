@@ -3,6 +3,7 @@ import { LLMClient } from "../llm/client.js";
 import { ExaClient } from "../exa/client.js";
 import { loadConfig } from "../config/store.js";
 import { createGraph } from "../agents/investigationGraph.js";
+import { getDb } from "../db/connection.js";
 import type { InvestigationState, StageEvent } from "@graver-ai/shared";
 
 const router = Router();
@@ -68,6 +69,7 @@ async function runInvestigation(
     });
 
     const initialState: InvestigationState = {
+      id,
       tip: tip.trim(),
       round: 1,
       maxRounds: config.maxInvestigationRounds,
@@ -104,6 +106,31 @@ async function runInvestigation(
       timestamp: new Date().toISOString(),
       payload: { status: "complete", evidenceCount: typedFinalState.evidence?.length ?? 0 },
     });
+
+    // Persist completed investigation to SQLite
+    try {
+      const db = getDb();
+      const stmt = db.prepare(
+        `INSERT INTO investigations (id, tip, status, dossier_json, evidence_json, completed_at)
+         VALUES (?, ?, ?, ?, ?, ?)
+         ON CONFLICT(id) DO UPDATE SET
+           status = excluded.status,
+           dossier_json = excluded.dossier_json,
+           evidence_json = excluded.evidence_json,
+           completed_at = excluded.completed_at`
+      );
+      stmt.run(
+        id,
+        tip.trim(),
+        "complete",
+        JSON.stringify(typedFinalState.dossier ?? null),
+        JSON.stringify(typedFinalState.rawEvidence ?? null),
+        new Date().toISOString()
+      );
+    } catch (dbErr: any) {
+      console.error("Failed to persist investigation:", dbErr.message);
+      // Do not fail the investigation because of persistence error
+    }
   } catch (err: any) {
     if (session.abortController.signal.aborted) {
       session.status = "cancelled";
@@ -282,8 +309,75 @@ router.get("/investigate/:id", (req, res) => {
     status: session.status,
     evidenceCount: session.finalState?.evidence?.length ?? 0,
     dossier: session.finalState?.dossier ?? null,
+    rawEvidence: session.finalState?.rawEvidence ?? null,
     error: session.error,
   });
+});
+
+// GET /api/investigations — list all persisted investigations
+router.get("/investigations", (_req, res) => {
+  try {
+    const db = getDb();
+    const rows = db
+      .prepare(
+        `SELECT id, tip, status, created_at, completed_at
+         FROM investigations
+         ORDER BY created_at DESC`
+      )
+      .all() as Array<{
+        id: string;
+        tip: string;
+        status: string;
+        created_at: string;
+        completed_at: string | null;
+      }>;
+    res.json({ investigations: rows });
+  } catch (err: any) {
+    console.error("Failed to list investigations:", err.message);
+    res.status(500).json({ error: "Failed to list investigations" });
+  }
+});
+
+// GET /api/investigations/:id — fetch a single persisted investigation
+router.get("/investigations/:id", (req, res) => {
+  const { id } = req.params;
+  try {
+    const db = getDb();
+    const row = db
+      .prepare(
+        `SELECT id, tip, status, dossier_json, evidence_json, created_at, completed_at
+         FROM investigations
+         WHERE id = ?`
+      )
+      .get(id) as
+      | {
+          id: string;
+          tip: string;
+          status: string;
+          dossier_json: string | null;
+          evidence_json: string | null;
+          created_at: string;
+          completed_at: string | null;
+        }
+      | undefined;
+
+    if (!row) {
+      return res.status(404).json({ error: "Investigation not found" });
+    }
+
+    res.json({
+      id: row.id,
+      tip: row.tip,
+      status: row.status,
+      dossier: row.dossier_json ? JSON.parse(row.dossier_json) : null,
+      rawEvidence: row.evidence_json ? JSON.parse(row.evidence_json) : null,
+      createdAt: row.created_at,
+      completedAt: row.completed_at,
+    });
+  } catch (err: any) {
+    console.error("Failed to fetch investigation:", err.message);
+    res.status(500).json({ error: "Failed to fetch investigation" });
+  }
 });
 
 export default router;

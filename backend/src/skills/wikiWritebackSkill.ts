@@ -88,12 +88,19 @@ export const wikiWritebackSkill: AgentSkill<Input, Output> = {
   },
 };
 
+function escapeYamlString(value: string): string {
+  // Double-quote YAML scalar: escape backslashes and double quotes
+  return value.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+}
+
 function buildFindingsMarkdown(
   dossier: Dossier,
   tip: string,
   investigationId: string,
   timestamp: string
 ): string {
+  const frontmatter = `---\ninvestigation_id: ${investigationId}\ntip: "${escapeYamlString(tip)}"\n---\n\n`;
+
   const findingsMd = dossier.findings.map((f) => {
     const heading = f.claimText || f.subClaimId;
     const idLabel = f.claimText ? ` *(${f.subClaimId})*` : "";
@@ -126,7 +133,8 @@ function buildFindingsMarkdown(
 
   const nextStepsMd = dossier.suggestedNextSteps.map((s) => `- ${s}`).join("\n");
 
-  return `# Investigation Findings: ${investigationId}\n\n` +
+  return frontmatter +
+    `# Investigation Findings: ${investigationId}\n\n` +
     `**Tip:** ${tip}\n\n` +
     `**Date:** ${timestamp}\n\n` +
     `**Overall Confidence:** ${dossier.overallConfidence}\n\n` +
